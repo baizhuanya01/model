@@ -4,6 +4,17 @@ import plotly.graph_objects as go
 
 st.title("磷锂电池大规模应用的经济性分析")
 
+st.markdown("""
+<style>
+[data-testid="stMetricDelta"]:has(svg[class*="down"]) {
+    color: orange !important;
+}
+[data-testid="stMetricDelta"] [class*="negative"] {
+    color: orange !important;
+}
+</style>
+""", unsafe_allow_html=True)
+
 #参数表(所有参数格式为前几字首字母缩写加最后两字全拼,除了那个其他是other)
 canshu = {
     "技术参数": {
