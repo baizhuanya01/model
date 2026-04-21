@@ -2,10 +2,32 @@ import streamlit as st
 import pandas as pd
 import plotly.graph_objects as go
 
-st.title("磷锂电池的大规模应用经济性分析")
+st.title("磷锂电池大规模应用的经济性分析")
 
 st.markdown("""
 <style>
+/* 引入等线字体 - 常规体 */
+@font-face {
+    font-family: 'DengXian';
+    src: url('./app/static/fonts/等线.ttf') format('truetype');
+    font-weight: normal;
+    font-style: normal;
+}
+
+/* 引入等线字体 - Light 体 */
+@font-face {
+    font-family: 'DengXian';
+    src: url('./app/static/fonts/等线 Light.ttf') format('truetype');
+    font-weight: 300;
+    font-style: normal;
+}
+
+/* 全局应用等线字体 */
+* {
+    font-family: 'DengXian', '等线', sans-serif !important;
+}
+
+/* Delta 负值显示橙色 */
 [data-testid="stMetricDelta"]:has(svg[class*="down"]) {
     color: orange !important;
 }
