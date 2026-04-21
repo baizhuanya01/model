@@ -2,7 +2,7 @@ import streamlit as st
 import pandas as pd
 import plotly.graph_objects as go
 
-st.title("电池大规模应用的经济性分析")
+st.title("磷锂电池的大规模应用经济性分析")
 
 st.markdown("""
 <style>
