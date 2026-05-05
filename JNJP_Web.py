@@ -613,6 +613,22 @@ with st.sidebar:
 
 locals().update(params)
 
+if edrongliang <= 0.5:
+    diannuan = 6.5 * 1e4;
+elif 0.2 < edrongliang <= 1:
+    diannuan = 14.5 * 1e4;
+elif 1 < edrongliang <= 2:
+    diannuan = 35 * 1e4;
+elif 2 < edrongliang <= 4:
+    diannuan = 49 * 1e4;
+elif 4 < edrongliang <= 10:
+    diannuan = 47.5 * 1e4;
+elif 10 < edrongliang <= 100:
+    diannuan = 135 * 1e4
+elif 100 < edrongliang <= 200:
+    diannuan = 475 * 1e4
+else:
+    st.warning("输入容量过大，请输入200以内的数值。")
 #计算逻辑
 
 # ── 1. 投资估算 ──────────────────────────────────────────────
@@ -626,7 +642,7 @@ dcxtchenben  = rlhuansuan * dcxtdanjia   / 1e4   # 电池系统
 pcschenben   = rlhuansuan * pcsdanjia    / 1e4   # PCS
 bmsemschenben= rlhuansuan * bmsemsdanjia / 1e4   # BMS+EMS
 sybjdqchenben= glhuansuan * sybjdqdanjia / 1e4   # 升压变及电气
-aztsfchenben = (dcxtchenben + pcschenben + bmsemschenben + sybjdqchenben) * aztsfbili  # 安装调试费
+aztsfchenben = (dcxtchenben + pcschenben + bmsemschenben + sybjdqchenben) * aztsfbili + diannuan  # 安装调试费
 sbheji       = dcxtchenben + pcschenben + bmsemschenben + sybjdqchenben + aztsfchenben  # 设备及安装小计
 
 # 1.2 建筑工程费（万元）
