@@ -615,7 +615,7 @@ locals().update(params)
 
 if edrongliang <= 0.5:
     diannuan = 6.5 * 1e4;
-elif 0.2 < edrongliang <= 1:
+elif 0.5 < edrongliang <= 1:
     diannuan = 14.5 * 1e4;
 elif 1 < edrongliang <= 2:
     diannuan = 35 * 1e4;
@@ -628,6 +628,7 @@ elif 10 < edrongliang <= 100:
 elif 100 < edrongliang <= 200:
     diannuan = 475 * 1e4
 else:
+    diannuan = None
     st.warning("输入容量过大，请输入200以内的数值。")
 #计算逻辑
 
