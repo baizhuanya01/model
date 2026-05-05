@@ -5,53 +5,74 @@ import plotly.graph_objects as go
 st.title("磷锂电池大规模应用的经济性分析")
 
 st.markdown("""
-<style>
-/* 引入等线字体 - 常规体 */
-@font-face {
-    font-family: 'DengXian';
-    src: url('./app/static/fonts/等线.ttf') format('truetype');
-    font-weight: normal;
-    font-style: normal;
-}
+    <style>
+    /* 引入等线字体 - 常规体 */
+    @font-face {
+        font-family: 'DengXian';
+        src: url('./app/static/fonts/等线.ttf') format('truetype');
+        font-weight: normal;
+        font-style: normal;
+    }
 
-/* 引入等线字体 - Light 体 */
-@font-face {
-    font-family: 'DengXian';
-    src: url('./app/static/fonts/等线 Light.ttf') format('truetype');
-    font-weight: 300;
-    font-style: normal;
-}
+    /* 引入等线字体 - Light 体 */
+    @font-face {
+        font-family: 'DengXian';
+        src: url('./app/static/fonts/等线 Light.ttf') format('truetype');
+        font-weight: 300;
+        font-style: normal;
+    }
 
-/* 全局应用等线字体 */
-* {
-    font-family: 'DengXian', '等线', sans-serif !important;
-}
+    /* 全局应用等线字体 */
+    * {
+        font-family: 'DengXian', '等线', sans-serif !important;
+    }
 
-/* Delta 负值显示橙色 */
-[data-testid="stMetricDelta"]:has(svg[class*="down"]) {
-    color: orange !important;
-}
-[data-testid="stMetricDelta"] [class*="negative"] {
-    color: orange !important;
-}
-</style>
-""", unsafe_allow_html=True)
+    /* Delta 负值显示橙色 */
+    [data-testid="stMetricDelta"]:has(svg[class*="down"]) {
+        color: orange !important;
+    }
+    [data-testid="stMetricDelta"] [class*="negative"] {
+        color: orange !important;
+    }
+    </style>
+    """, unsafe_allow_html=True)
 
 #参数表(所有参数格式为前几字首字母缩写加最后两字全拼,除了那个其他是other)
 canshu = {
     "技术参数": {
-        "额定功率 (MW)": {
-            "type": "number",
+        # ── 带单位选择的特殊参数 ──────────────────────────────────
+        # type 设为 "number_with_unit"，render_param 里有专门分支处理它
+        # units        : 下拉框里显示的单位选项列表
+        # unit_factors : 每个单位对应的换算系数，乘以用户输入值后统一换算到基准单位
+        #                基准单位：功率 → MW，容量 → MWh
+        # unit_default : 下拉框默认选中第几个（0 = 第一个）
+        # label        : 不含单位的纯名称，单位由下拉框动态显示
+        "额定功率": {
+            "type": "number_with_unit",
+            "label": "额定功率",
             "var": "edgonglv",
             "default": 10.0,
             "step": 1.0,
+            "units": ["MW", "kW"],          # 可选单位
+            "unit_factors": {               # 换算到 MW：1 MW=1，1 kW=0.001
+                "MW": 1.0,
+                "kW": 0.001
+            },
+            "unit_default": 0,              # 默认选 MW（索引 0）
             "help": "储能系统的额定输出功率"
         },
-        "额定容量 (MWh)": {
-            "type": "number",
+        "额定容量": {
+            "type": "number_with_unit",
+            "label": "额定容量",
             "var": "edrongliang",
             "default": 20.0,
             "step": 1.0,
+            "units": ["MWh", "kWh"],        # 可选单位
+            "unit_factors": {               # 换算到 MWh：1 MWh=1，1 kWh=0.001
+                "MWh": 1.0,
+                "kWh": 0.001
+            },
+            "unit_default": 0,              # 默认选 MWh（索引 0）
             "help": "储能系统的总能量容量"
         },
         "系统效率 (%)": {
@@ -482,40 +503,86 @@ canshu = {
 }
 
 # 通用参数渲染函数
+# param_name : 参数的显示名称（字典的 key），用作控件 label
+# config     : 该参数对应的配置字典，包含 type/var/default 等字段
 def render_param(param_name, config):
     """根据配置渲染参数输入控件"""
+
+    # ── 分支 1：普通数字输入框 ────────────────────────────────
     if config["type"] == "number":
-        # 根据默认值类型自动确定format
+        # 根据默认值类型自动确定 format 字符串
+        # format 控制输入框里数字的显示格式，例如 "%.2f" 保留两位小数
         default_value = config["default"]
         if "format" in config:
-            format_str = config["format"]
+            format_str = config["format"]           # 配置里手动指定了格式
         elif isinstance(default_value, int):
-            format_str = "%d"  # 整数格式
+            format_str = "%d"                       # 默认值是整数 → 整数格式
         else:
-            format_str = "%f"  # 浮点数格式
+            format_str = "%f"                       # 默认值是浮点数 → 浮点格式
         
         value = st.number_input(
             label=param_name,
             value=default_value,
-            step=config.get("step", 1.0),
-            min_value=config.get("min"),
-            max_value=config.get("max"),
+            step=config.get("step", 1.0),           # .get() 取不到时用默认值 1.0
+            min_value=config.get("min"),            # 没有 min 键时返回 None（不限制）
+            max_value=config.get("max"),            # 没有 max 键时返回 None（不限制）
             format=format_str,
             help=config["help"]
         )
+
+    # ── 分支 2：滑块 ──────────────────────────────────────────
     elif config["type"] == "slider":
         value = st.slider(
             label=param_name,
             min_value=config["min"],
             max_value=config["max"],
             value=config["default"],
-            step=config.get("step"),
+            step=config.get("step"),                # 滑块步长，None 时 Streamlit 自动推断
             help=config["help"]
         )
+
+    # ── 分支 3：数字输入框 + 单位下拉选择 ────────────────────
+    # 专门给"额定功率"和"额定容量"使用
+    elif config["type"] == "number_with_unit":
+        # st.columns([3, 1]) 把这一行分成宽度比 3:1 的两列
+        # 左列放数字输入框，右列放单位下拉框
+        col_num, col_unit = st.columns([3, 1])
+
+        with col_num:
+            raw_value = st.number_input(
+                label=config["label"],              # 用 label 字段（不含单位）
+                value=config["default"],
+                step=config.get("step", 1.0),
+                min_value=config.get("min"),
+                max_value=config.get("max"),
+                format="%g",                        # %g 自动去掉多余的尾零，更简洁
+                help=config["help"]
+            )
+
+        with col_unit:
+            selected_unit = st.selectbox(
+                label="单位",
+                options=config["units"],            # 下拉选项，如 ["MW", "kW"]
+                index=config.get("unit_default", 0),# 默认选中第几个
+                # label_visibility="hidden" 隐藏 "单位" 这个 label 文字，
+                # 但控件本身仍然存在（对比 label="" 会有警告）
+                label_visibility="hidden",
+                # key 必须唯一，否则同一页面多个 selectbox 会互相干扰
+                # 用 var 字段拼接保证唯一性
+                key=f"unit_{config['var']}"
+            )
+
+        # 换算：用户输入的原始值 × 该单位对应的系数 → 统一基准单位
+        # 例如用户输入 5000 kW，unit_factors["kW"]=0.001，结果 = 5.0 MW
+        value = raw_value * config["unit_factors"][selected_unit]
+
+    # ── 兜底：未知 type，直接用默认值 ────────────────────────
     else:
         value = config["default"]
-    
-    # 应用转换函数
+
+    # ── 后处理：应用 convert 转换函数 ────────────────────────
+    # 部分参数（如百分比滑块）需要在读取后做单位换算，例如 90 → 0.9
+    # convert 是一个 lambda 函数，存在时才调用
     if "convert" in config and config["convert"]:
         value = config["convert"](value)
 
@@ -550,7 +617,7 @@ locals().update(params)
 
 # ── 1. 投资估算 ──────────────────────────────────────────────
 
-# 单位换算
+# 单位换算及判断
 rlhuansuan = edrongliang * 1e6   # 容量换算 MWh → Wh
 glhuansuan = edgonglv   * 1e6   # 功率换算 MW  → W
 
