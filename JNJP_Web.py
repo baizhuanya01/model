@@ -588,6 +588,182 @@ def render_param(param_name, config):
 
     return value
 
+#——————————————————预设方案————————————————————
+# 土地费用 = 典型地价(万元/亩) × 5亩
+# 充电电价取谷/深谷典型值，放电电价取尖/峰典型值
+FA_diqv = {
+    "自定义": {},
+
+    # ── 华东 ──────────────────────────────────────────────────
+    "上海": {
+        "fddianjia":  1.23,
+        "cddianjia":  0.34,
+        "jsydifei":   450.0,   # 90万/亩×5亩
+    },
+    "浙江": {
+        "fddianjia":  1.02,
+        "cddianjia":  0.24,
+        "jsydifei":   150.0,   # 30万/亩×5亩
+    },
+    "江苏": {
+        "fddianjia":  1.05,
+        "cddianjia":  0.30,
+        "jsydifei":   150.0,
+    },
+    "安徽": {
+        "fddianjia":  0.95,
+        "cddianjia":  0.25,
+        "jsydifei":    90.0,   # 18万/亩×5亩
+    },
+    "福建": {
+        "fddianjia":  0.95,
+        "cddianjia":  0.30,
+        "jsydifei":   125.0,   # 25万/亩×5亩
+    },
+    "江西": {
+        "fddianjia":  0.90,
+        "cddianjia":  0.20,
+        "jsydifei":    80.0,   # 16万/亩×5亩
+    },
+    "山东": {
+        "fddianjia":  0.95,
+        "cddianjia":  0.20,
+        "jsydifei":   125.0,
+    },
+
+    # ── 华北 ──────────────────────────────────────────────────
+    "北京": {
+        "fddianjia":  1.10,
+        "cddianjia":  0.45,
+        "jsydifei":   475.0,   # 95万/亩×5亩
+    },
+    "天津": {
+        "fddianjia":  1.05,
+        "cddianjia":  0.40,
+        "jsydifei":   140.0,   # 28万/亩×5亩
+    },
+    "河北": {
+        "fddianjia":  0.85,
+        "cddianjia":  0.25,
+        "jsydifei":   110.0,   # 22万/亩×5亩
+    },
+    "山西": {
+        "fddianjia":  0.85,
+        "cddianjia":  0.25,
+        "jsydifei":    75.0,   # 15万/亩×5亩
+    },
+    "内蒙古": {                # ⚠️ 表注"尚未执行固定分时电价"，峰谷价差仅0.25-0.35，数值为估算
+        "fddianjia":  0.60,
+        "cddianjia":  0.35,
+        "jsydifei":    65.0,   # 13万/亩×5亩
+    },
+
+    # ── 华南 ──────────────────────────────────────────────────
+    "广东": {
+        "fddianjia":  1.02,
+        "cddianjia":  0.29,
+        "jsydifei":   300.0,   # 60万/亩×5亩
+    },
+    "海南": {
+        "fddianjia":  1.01,
+        "cddianjia":  0.38,
+        "jsydifei":   100.0,   # 20万/亩×5亩
+    },
+    "广西": {
+        "fddianjia":  0.75,
+        "cddianjia":  0.40,
+        "jsydifei":    70.0,   # 14万/亩×5亩
+    },
+
+    # ── 华中 ──────────────────────────────────────────────────
+    "湖南": {
+        "fddianjia":  0.95,
+        "cddianjia":  0.35,
+        "jsydifei":    90.0,
+    },
+    "河南": {
+        "fddianjia":  0.90,
+        "cddianjia":  0.35,
+        "jsydifei":   100.0,
+    },
+    "湖北": {
+        "fddianjia":  0.95,
+        "cddianjia":  0.35,
+        "jsydifei":   100.0,
+    },
+
+    # ── 西南 ──────────────────────────────────────────────────
+    "四川": {
+        "fddianjia":  0.85,
+        "cddianjia":  0.30,
+        "jsydifei":    90.0,
+    },
+    "重庆": {
+        "fddianjia":  0.90,
+        "cddianjia":  0.35,
+        "jsydifei":    90.0,
+    },
+    "贵州": {
+        "fddianjia":  0.75,
+        "cddianjia":  0.35,
+        "jsydifei":    70.0,
+    },
+    "云南": {
+        "fddianjia":  0.75,
+        "cddianjia":  0.35,
+        "jsydifei":    75.0,
+    },
+    "西藏": {                  # ⚠️ 表注"暂未统一固定分时"，数值为估算
+        "fddianjia":  0.70,
+        "cddianjia":  0.30,
+        "jsydifei":    60.0,   # 12万/亩×5亩
+    },
+
+    # ── 西北 ──────────────────────────────────────────────────
+    "陕西": {                  # ⚠️ 充放电电价表中无陕西，数值为估算
+        "fddianjia":  0.80,
+        "cddianjia":  0.28,
+        "jsydifei":    85.0,   # 17万/亩×5亩
+    },
+    "甘肃": {                  # ⚠️ 充放电电价表中无甘肃，数值为估算
+        "fddianjia":  0.75,
+        "cddianjia":  0.25,
+        "jsydifei":    60.0,   # 12万/亩×5亩
+    },
+    "新疆": {                  # ⚠️ 充放电电价表中无新疆，数值为估算
+        "fddianjia":  0.65,
+        "cddianjia":  0.20,
+        "jsydifei":    50.0,   # 10万/亩×5亩
+    },
+    "青海": {                  # ⚠️ 充放电电价表中无青海，数值为估算
+        "fddianjia":  0.65,
+        "cddianjia":  0.22,
+        "jsydifei":    50.0,
+    },
+    "宁夏": {                  # ⚠️ 充放电电价表中无宁夏，数值为估算
+        "fddianjia":  0.65,
+        "cddianjia":  0.22,
+        "jsydifei":    45.0,   # 9万/亩×5亩
+    },
+
+    # ── 东北 ──────────────────────────────────────────────────
+    "辽宁": {                  # ⚠️ 充放电电价表中无辽宁，数值为估算
+        "fddianjia":  0.80,
+        "cddianjia":  0.28,
+        "jsydifei":    75.0,
+    },
+    "吉林": {                  # ⚠️ 充放电电价表中无吉林，数值为估算
+        "fddianjia":  0.75,
+        "cddianjia":  0.25,
+        "jsydifei":    65.0,   # 13万/亩×5亩
+    },
+    "黑龙江": {                # ⚠️ 充放电电价表中无黑龙江，数值为估算
+        "fddianjia":  0.75,
+        "cddianjia":  0.25,
+        "jsydifei":    65.0,
+    },
+}
+
 with st.sidebar:
     selected_FA_diqv = st.selectbox("选择预设方案",options=list(FA_diqv.keys()))
     FA_diqv_s =FA_diqv[selected_FA_diqv]
@@ -1085,182 +1261,6 @@ def calc_metrics(p):
         "ROI(%)": _ztzsyilv * 100,
         "ROE(%)": _zbjjlrunlv * 100,
     }
-
-#——————————————————预设方案————————————————————
-# 土地费用 = 典型地价(万元/亩) × 5亩
-# 充电电价取谷/深谷典型值，放电电价取尖/峰典型值
-FA_diqv = {
-    "自定义": {},
-
-    # ── 华东 ──────────────────────────────────────────────────
-    "上海": {
-        "fddianjia":  1.23,
-        "cddianjia":  0.34,
-        "jsydifei":   450.0,   # 90万/亩×5亩
-    },
-    "浙江": {
-        "fddianjia":  1.02,
-        "cddianjia":  0.24,
-        "jsydifei":   150.0,   # 30万/亩×5亩
-    },
-    "江苏": {
-        "fddianjia":  1.05,
-        "cddianjia":  0.30,
-        "jsydifei":   150.0,
-    },
-    "安徽": {
-        "fddianjia":  0.95,
-        "cddianjia":  0.25,
-        "jsydifei":    90.0,   # 18万/亩×5亩
-    },
-    "福建": {
-        "fddianjia":  0.95,
-        "cddianjia":  0.30,
-        "jsydifei":   125.0,   # 25万/亩×5亩
-    },
-    "江西": {
-        "fddianjia":  0.90,
-        "cddianjia":  0.20,
-        "jsydifei":    80.0,   # 16万/亩×5亩
-    },
-    "山东": {
-        "fddianjia":  0.95,
-        "cddianjia":  0.20,
-        "jsydifei":   125.0,
-    },
-
-    # ── 华北 ──────────────────────────────────────────────────
-    "北京": {
-        "fddianjia":  1.10,
-        "cddianjia":  0.45,
-        "jsydifei":   475.0,   # 95万/亩×5亩
-    },
-    "天津": {
-        "fddianjia":  1.05,
-        "cddianjia":  0.40,
-        "jsydifei":   140.0,   # 28万/亩×5亩
-    },
-    "河北": {
-        "fddianjia":  0.85,
-        "cddianjia":  0.25,
-        "jsydifei":   110.0,   # 22万/亩×5亩
-    },
-    "山西": {
-        "fddianjia":  0.85,
-        "cddianjia":  0.25,
-        "jsydifei":    75.0,   # 15万/亩×5亩
-    },
-    "内蒙古": {
-        "fddianjia":  0.60,
-        "cddianjia":  0.35,
-        "jsydifei":    65.0,   # 13万/亩×5亩
-    },
-
-    # ── 华南 ──────────────────────────────────────────────────
-    "广东": {
-        "fddianjia":  1.02,
-        "cddianjia":  0.29,
-        "jsydifei":   300.0,   # 60万/亩×5亩
-    },
-    "海南": {
-        "fddianjia":  1.01,
-        "cddianjia":  0.38,
-        "jsydifei":   100.0,   # 20万/亩×5亩
-    },
-    "广西": {
-        "fddianjia":  0.75,
-        "cddianjia":  0.40,
-        "jsydifei":    70.0,   # 14万/亩×5亩
-    },
-
-    # ── 华中 ──────────────────────────────────────────────────
-    "湖南": {
-        "fddianjia":  0.95,
-        "cddianjia":  0.35,
-        "jsydifei":    90.0,
-    },
-    "河南": {
-        "fddianjia":  0.90,
-        "cddianjia":  0.35,
-        "jsydifei":   100.0,
-    },
-    "湖北": {
-        "fddianjia":  0.95,
-        "cddianjia":  0.35,
-        "jsydifei":   100.0,
-    },
-
-    # ── 西南 ──────────────────────────────────────────────────
-    "四川": {
-        "fddianjia":  0.85,
-        "cddianjia":  0.30,
-        "jsydifei":    90.0,
-    },
-    "重庆": {
-        "fddianjia":  0.90,
-        "cddianjia":  0.35,
-        "jsydifei":    90.0,
-    },
-    "贵州": {
-        "fddianjia":  0.75,
-        "cddianjia":  0.35,
-        "jsydifei":    70.0,
-    },
-    "云南": {
-        "fddianjia":  0.75,
-        "cddianjia":  0.35,
-        "jsydifei":    75.0,
-    },
-    "西藏": {
-        "fddianjia":  0.70,
-        "cddianjia":  0.30,
-        "jsydifei":    60.0,   # 12万/亩×5亩，数据缺失按估算
-    },
-
-    # ── 西北 ──────────────────────────────────────────────────
-    "陕西": {
-        "fddianjia":  0.80,
-        "cddianjia":  0.28,
-        "jsydifei":    85.0,   # 17万/亩×5亩
-    },
-    "甘肃": {
-        "fddianjia":  0.75,
-        "cddianjia":  0.25,
-        "jsydifei":    60.0,   # 12万/亩×5亩
-    },
-    "新疆": {
-        "fddianjia":  0.65,
-        "cddianjia":  0.20,
-        "jsydifei":    50.0,   # 10万/亩×5亩
-    },
-    "青海": {
-        "fddianjia":  0.65,
-        "cddianjia":  0.22,
-        "jsydifei":    50.0,
-    },
-    "宁夏": {
-        "fddianjia":  0.65,
-        "cddianjia":  0.22,
-        "jsydifei":    45.0,   # 9万/亩×5亩
-    },
-
-    # ── 东北 ──────────────────────────────────────────────────
-    "辽宁": {
-        "fddianjia":  0.80,
-        "cddianjia":  0.28,
-        "jsydifei":    75.0,
-    },
-    "吉林": {
-        "fddianjia":  0.75,
-        "cddianjia":  0.25,
-        "jsydifei":    65.0,   # 13万/亩×5亩
-    },
-    "黑龙江": {
-        "fddianjia":  0.75,
-        "cddianjia":  0.25,
-        "jsydifei":    65.0,
-    },
-}
 
 tab1,tab2,tab3,tab4,tab5 = st.tabs(["主展板","web2","web3","web4","web5"])
 
