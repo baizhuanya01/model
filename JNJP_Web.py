@@ -589,51 +589,8 @@ def render_param(param_name, config):
     return value
 
 with st.sidebar:
-    params = {}
-    icons = {
-    "技术参数": "⚡",
-    "成本参数": "💰",
-    "收益参数": "📈",
-    "财务参数": "🏦",
-    "税务与贷款": "💼"
-    }
-    for group_name, group_params in canshu.items():
-        icon = icons.get(group_name,"📋")
-        with st.expander(label=f"{icon}{group_name}",expanded=True):
-            param_names = list(group_params.keys())
-            selected = st.multiselect("选择参数",options=param_names,default=None,help="选择你需要的参数，可多选。")
-            for param_name, config in group_params.items():
-                if param_name in selected:
-                    value = render_param(param_name, config)
-                else:
-                    value = config["default"]
-                    if "convert" in config:
-                        value = config["convert"](value)
-                params[config["var"]] = value
-
-    # ── 方案保存区 ────────────────────────────────────────────
-    st.divider()
-    st.subheader("💾 保存方案")
-    if "saved_scenarios" not in st.session_state:
-        st.session_state.saved_scenarios = {}
-
-    scenario_name = st.text_input("方案名称", placeholder="例如：基准方案、高电价情景…", key="scenario_name_input")
-    if st.button("保存当前方案", use_container_width=True):
-        if scenario_name.strip():
-            st.session_state.saved_scenarios[scenario_name.strip()] = dict(params)
-            st.success(f"已保存：{scenario_name.strip()}")
-        else:
-            st.warning("请先输入方案名称")
-
-    if st.session_state.saved_scenarios:
-        st.caption(f"已保存 {len(st.session_state.saved_scenarios)} 个方案")
-        del_name = st.selectbox("删除方案", options=["—"] + list(st.session_state.saved_scenarios.keys()), key="del_scenario")
-        if st.button("删除所选方案", use_container_width=True):
-            if del_name != "—":
-                del st.session_state.saved_scenarios[del_name]
-                st.rerun()
-
-locals().update(params)
+    selected_FA_diqv = st.selectbox("选择预设方案",options=list(FA_diqv.keys()))
+    FA_diqv_s =FA_diqv[selected_FA_diqv]
 
 if edrongliang <= 0.5:
     diannuan = 6.5
@@ -651,7 +608,6 @@ elif 100 < edrongliang <= 200:
     diannuan = 475.0
 else:
     diannuan = 475.0
-    st.warning("输入容量过大，请输入200以内的数值。")
 #计算逻辑
 
 # ── 1. 投资估算 ──────────────────────────────────────────────
@@ -1130,8 +1086,231 @@ def calc_metrics(p):
         "ROE(%)": _zbjjlrunlv * 100,
     }
 
+#——————————————————预设方案————————————————————
+# 土地费用 = 典型地价(万元/亩) × 5亩
+# 充电电价取谷/深谷典型值，放电电价取尖/峰典型值
+FA_diqv = {
+    "自定义": {},
+
+    # ── 华东 ──────────────────────────────────────────────────
+    "上海": {
+        "fddianjia":  1.23,
+        "cddianjia":  0.34,
+        "jsydifei":   450.0,   # 90万/亩×5亩
+    },
+    "浙江": {
+        "fddianjia":  1.02,
+        "cddianjia":  0.24,
+        "jsydifei":   150.0,   # 30万/亩×5亩
+    },
+    "江苏": {
+        "fddianjia":  1.05,
+        "cddianjia":  0.30,
+        "jsydifei":   150.0,
+    },
+    "安徽": {
+        "fddianjia":  0.95,
+        "cddianjia":  0.25,
+        "jsydifei":    90.0,   # 18万/亩×5亩
+    },
+    "福建": {
+        "fddianjia":  0.95,
+        "cddianjia":  0.30,
+        "jsydifei":   125.0,   # 25万/亩×5亩
+    },
+    "江西": {
+        "fddianjia":  0.90,
+        "cddianjia":  0.20,
+        "jsydifei":    80.0,   # 16万/亩×5亩
+    },
+    "山东": {
+        "fddianjia":  0.95,
+        "cddianjia":  0.20,
+        "jsydifei":   125.0,
+    },
+
+    # ── 华北 ──────────────────────────────────────────────────
+    "北京": {
+        "fddianjia":  1.10,
+        "cddianjia":  0.45,
+        "jsydifei":   475.0,   # 95万/亩×5亩
+    },
+    "天津": {
+        "fddianjia":  1.05,
+        "cddianjia":  0.40,
+        "jsydifei":   140.0,   # 28万/亩×5亩
+    },
+    "河北": {
+        "fddianjia":  0.85,
+        "cddianjia":  0.25,
+        "jsydifei":   110.0,   # 22万/亩×5亩
+    },
+    "山西": {
+        "fddianjia":  0.85,
+        "cddianjia":  0.25,
+        "jsydifei":    75.0,   # 15万/亩×5亩
+    },
+    "内蒙古": {
+        "fddianjia":  0.60,
+        "cddianjia":  0.35,
+        "jsydifei":    65.0,   # 13万/亩×5亩
+    },
+
+    # ── 华南 ──────────────────────────────────────────────────
+    "广东": {
+        "fddianjia":  1.02,
+        "cddianjia":  0.29,
+        "jsydifei":   300.0,   # 60万/亩×5亩
+    },
+    "海南": {
+        "fddianjia":  1.01,
+        "cddianjia":  0.38,
+        "jsydifei":   100.0,   # 20万/亩×5亩
+    },
+    "广西": {
+        "fddianjia":  0.75,
+        "cddianjia":  0.40,
+        "jsydifei":    70.0,   # 14万/亩×5亩
+    },
+
+    # ── 华中 ──────────────────────────────────────────────────
+    "湖南": {
+        "fddianjia":  0.95,
+        "cddianjia":  0.35,
+        "jsydifei":    90.0,
+    },
+    "河南": {
+        "fddianjia":  0.90,
+        "cddianjia":  0.35,
+        "jsydifei":   100.0,
+    },
+    "湖北": {
+        "fddianjia":  0.95,
+        "cddianjia":  0.35,
+        "jsydifei":   100.0,
+    },
+
+    # ── 西南 ──────────────────────────────────────────────────
+    "四川": {
+        "fddianjia":  0.85,
+        "cddianjia":  0.30,
+        "jsydifei":    90.0,
+    },
+    "重庆": {
+        "fddianjia":  0.90,
+        "cddianjia":  0.35,
+        "jsydifei":    90.0,
+    },
+    "贵州": {
+        "fddianjia":  0.75,
+        "cddianjia":  0.35,
+        "jsydifei":    70.0,
+    },
+    "云南": {
+        "fddianjia":  0.75,
+        "cddianjia":  0.35,
+        "jsydifei":    75.0,
+    },
+    "西藏": {
+        "fddianjia":  0.70,
+        "cddianjia":  0.30,
+        "jsydifei":    60.0,   # 12万/亩×5亩，数据缺失按估算
+    },
+
+    # ── 西北 ──────────────────────────────────────────────────
+    "陕西": {
+        "fddianjia":  0.80,
+        "cddianjia":  0.28,
+        "jsydifei":    85.0,   # 17万/亩×5亩
+    },
+    "甘肃": {
+        "fddianjia":  0.75,
+        "cddianjia":  0.25,
+        "jsydifei":    60.0,   # 12万/亩×5亩
+    },
+    "新疆": {
+        "fddianjia":  0.65,
+        "cddianjia":  0.20,
+        "jsydifei":    50.0,   # 10万/亩×5亩
+    },
+    "青海": {
+        "fddianjia":  0.65,
+        "cddianjia":  0.22,
+        "jsydifei":    50.0,
+    },
+    "宁夏": {
+        "fddianjia":  0.65,
+        "cddianjia":  0.22,
+        "jsydifei":    45.0,   # 9万/亩×5亩
+    },
+
+    # ── 东北 ──────────────────────────────────────────────────
+    "辽宁": {
+        "fddianjia":  0.80,
+        "cddianjia":  0.28,
+        "jsydifei":    75.0,
+    },
+    "吉林": {
+        "fddianjia":  0.75,
+        "cddianjia":  0.25,
+        "jsydifei":    65.0,   # 13万/亩×5亩
+    },
+    "黑龙江": {
+        "fddianjia":  0.75,
+        "cddianjia":  0.25,
+        "jsydifei":    65.0,
+    },
+}
 
 tab1,tab2,tab3,tab4,tab5 = st.tabs(["主展板","web2","web3","web4","web5"])
+
+with tab2:
+    preset_vals = FA_diqv_s
+
+    params = {}
+    icons = {
+    "技术参数": "⚡",
+    "成本参数": "💰",
+    "收益参数": "📈",
+    "财务参数": "🏦",
+    "税务与贷款": "💼"
+    }
+    for group_name, group_params in canshu.items():
+        icon = icons.get(group_name,"📋")
+        with st.expander(label=f"{icon}{group_name}",expanded=True):
+            param_names = list(group_params.keys())
+            selected = st.multiselect("选择参数",options=param_names,default=None,help="选择你需要的参数，可多选。")
+            for param_name, config in group_params.items():
+                var = config["var"]
+                if var in preset_vals:
+                    config = {**config, "default": preset_vals[var]}
+                
+                value = render_param(param_name, config)
+                params[var] = value
+
+    # ── 方案保存区 ────────────────────────────────────────────
+    st.divider()
+    st.subheader("💾 保存方案")
+    if "saved_scenarios" not in st.session_state:
+        st.session_state.saved_scenarios = {}
+
+    scenario_name = st.text_input("方案名称", placeholder="例如：基准方案、高电价情景…", key="scenario_name_input")
+    if st.button("保存当前方案", use_container_width=True):
+        if scenario_name.strip():
+            st.session_state.saved_scenarios[scenario_name.strip()] = dict(params)
+            st.success(f"已保存：{scenario_name.strip()}")
+        else:
+            st.warning("请先输入方案名称")
+
+    if st.session_state.saved_scenarios:
+        st.caption(f"已保存 {len(st.session_state.saved_scenarios)} 个方案")
+        del_name = st.selectbox("删除方案", options=["—"] + list(st.session_state.saved_scenarios.keys()), key="del_scenario")
+        if st.button("删除所选方案", use_container_width=True):
+            if del_name != "—":
+                del st.session_state.saved_scenarios[del_name]
+                st.rerun()
+
+locals().update(params)
 
 with tab1:
     # ── 方案对比区 ────────────────────────────────────────────
