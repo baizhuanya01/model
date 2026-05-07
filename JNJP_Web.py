@@ -482,22 +482,6 @@ canshu = {
             "min": 0,
             "max": 1,
             "help": "1=可抵扣，0=不抵扣"
-        },
-        "流动资产周转次数 (次/年)": {
-            "type": "number",
-            "var": "ldzczzcishu",
-            "default": 4,
-            "step": 1,
-            "min": 1,
-            "help": "流动资产年周转次数"
-        },
-        "应付账款周转次数 (次/年)": {
-            "type": "number",
-            "var": "yfzkzzcishu",
-            "default": 4,
-            "step": 1,
-            "min": 1,
-            "help": "应付账款年周转次数"
         }
     }
 }
@@ -767,6 +751,17 @@ FA_diqv = {
 with st.sidebar:
     selected_FA_diqv = st.selectbox("选择预设方案",options=list(FA_diqv.keys()))
     FA_diqv_s =FA_diqv[selected_FA_diqv]
+
+# 首次运行时 params 还未从 tab2 收集，用各参数默认值初始化
+if "params" not in st.session_state:
+    st.session_state.params = {
+        config["var"]: (config["convert"](config["default"]) if "convert" in config else config["default"])
+        for group in canshu.values()
+        for config in group.values()
+    }
+
+params = st.session_state.params
+locals().update(params)
 
 if edrongliang <= 0.5:
     diannuan = 6.5
@@ -1264,6 +1259,9 @@ def calc_metrics(p):
 
 tab1,tab2,tab3,tab4,tab5 = st.tabs(["主展板","web2","web3","web4","web5"])
 
+if "saved_scenarios" not in st.session_state:
+    st.session_state.saved_scenarios = {}
+
 with tab2:
     preset_vals = FA_diqv_s
 
@@ -1288,11 +1286,12 @@ with tab2:
                 value = render_param(param_name, config)
                 params[var] = value
 
+    # tab2 收集完毕，同步回 session_state 供计算逻辑使用
+    st.session_state.params = params
+
     # ── 方案保存区 ────────────────────────────────────────────
     st.divider()
     st.subheader("💾 保存方案")
-    if "saved_scenarios" not in st.session_state:
-        st.session_state.saved_scenarios = {}
 
     scenario_name = st.text_input("方案名称", placeholder="例如：基准方案、高电价情景…", key="scenario_name_input")
     if st.button("保存当前方案", use_container_width=True):
@@ -1310,7 +1309,6 @@ with tab2:
                 del st.session_state.saved_scenarios[del_name]
                 st.rerun()
 
-locals().update(params)
 
 with tab1:
     # ── 方案对比区 ────────────────────────────────────────────
