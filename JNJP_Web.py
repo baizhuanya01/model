@@ -516,12 +516,23 @@ def render_param(param_name, config):
 
     # ── 分支 2：滑块 ──────────────────────────────────────────
     elif config["type"] == "slider":
+        # 确保 value/min/max/step 类型一致，全部统一为 float 或全部为 int
+        _min  = config["min"]
+        _max  = config["max"]
+        _def  = config["default"]
+        _step = config.get("step")
+        # 只要有一个是 float，全部转 float
+        if any(isinstance(v, float) for v in [_min, _max, _def] if v is not None):
+            _min  = float(_min)
+            _max  = float(_max)
+            _def  = float(_def)
+            _step = float(_step) if _step is not None else None
         value = st.slider(
             label=param_name,
-            min_value=config["min"],
-            max_value=config["max"],
-            value=config["default"],
-            step=config.get("step"),                # 滑块步长，None 时 Streamlit 自动推断
+            min_value=_min,
+            max_value=_max,
+            value=_def,
+            step=_step,
             help=config["help"]
         )
 
@@ -752,7 +763,7 @@ with st.sidebar:
     selected_FA_diqv = st.selectbox("选择预设方案",options=list(FA_diqv.keys()))
     FA_diqv_s =FA_diqv[selected_FA_diqv]
 
-# 首次运行时 params 还未从 tab2 收集，用各参数默认值初始化
+# 首次运行时 params 还未从 tab2 收集，用各参数默认值初始化（存 convert 后的值）
 if "params" not in st.session_state:
     st.session_state.params = {
         config["var"]: (config["convert"](config["default"]) if "convert" in config else config["default"])
