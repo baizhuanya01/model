@@ -611,6 +611,28 @@ with st.sidebar:
                         value = config["convert"](value)
                 params[config["var"]] = value
 
+    # ── 方案保存区 ────────────────────────────────────────────
+    st.divider()
+    st.subheader("💾 保存方案")
+    if "saved_scenarios" not in st.session_state:
+        st.session_state.saved_scenarios = {}
+
+    scenario_name = st.text_input("方案名称", placeholder="例如：基准方案、高电价情景…", key="scenario_name_input")
+    if st.button("保存当前方案", use_container_width=True):
+        if scenario_name.strip():
+            st.session_state.saved_scenarios[scenario_name.strip()] = dict(params)
+            st.success(f"已保存：{scenario_name.strip()}")
+        else:
+            st.warning("请先输入方案名称")
+
+    if st.session_state.saved_scenarios:
+        st.caption(f"已保存 {len(st.session_state.saved_scenarios)} 个方案")
+        del_name = st.selectbox("删除方案", options=["—"] + list(st.session_state.saved_scenarios.keys()), key="del_scenario")
+        if st.button("删除所选方案", use_container_width=True):
+            if del_name != "—":
+                del st.session_state.saved_scenarios[del_name]
+                st.rerun()
+
 locals().update(params)
 
 if edrongliang <= 0.5:
@@ -628,7 +650,7 @@ elif 10 < edrongliang <= 100:
 elif 100 < edrongliang <= 200:
     diannuan = 475 * 1e4
 else:
-    diannuan = None
+    diannuan = 475 * 1e4 
     st.warning("输入容量过大，请输入200以内的数值。")
 #计算逻辑
 
@@ -891,9 +913,256 @@ njjlirun = sum(jlirun)  / 20
 ztzsyilv = njlirun  / dttouzi if dttouzi > 0 else 0
 zbjjlrunlv = njjlirun / zyzijin if zyzijin > 0 else 0
 
+def calc_metrics(p):
+    """根据参数字典 p 计算并返回核心财务指标字典"""
+    _edrongliang  = p["edrongliang"]
+    _edgonglv     = p["edgonglv"]
+    _xtxiaolv     = p["xtxiaolv"]
+    _nxhcishu     = p["nxhcishu"]
+    _cfdshendu    = p["cfdshendu"]
+    _snsjianlv    = p["snsjianlv"]
+    _xxsjianlv    = p["xxsjianlv"]
+    _dcxtdanjia   = p["dcxtdanjia"]
+    _pcsdanjia    = p["pcsdanjia"]
+    _bmsemsdanjia = p["bmsemsdanjia"]
+    _sybjdqdanjia = p["sybjdqdanjia"]
+    _tjgcfdanjia  = p["tjgcfdanjia"]
+    _aztsfbili    = p["aztsfbili"]
+    _jsydifei     = p["jsydifei"]
+    _jrxtongfei   = p["jrxtongfei"]
+    _qxkfglifei   = p["qxkfglifei"]
+    _ybfeilv      = p["ybfeilv"]
+    _fddianjia    = p["fddianjia"]
+    _cddianjia    = p["cddianjia"]
+    _btshouru     = p["btshouru"]
+    _dcxtzjnianxian = p["dcxtzjnianxian"]
+    _pcszjnianxian  = p["pcszjnianxian"]
+    _tjzjnianxian   = p["tjzjnianxian"]
+    _czhilv       = p["czhilv"]
+    _wxfeilv      = p["wxfeilv"]
+    _bxfeilv      = p["bxfeilv"]
+    _clfdwchenben = p["clfdwchenben"]
+    _ryshuliang   = p["ryshuliang"]
+    _rjngongzi    = p["rjngongzi"]
+    _flfzgzbili   = p["flfzgzbili"]
+    _other        = p["other"]
+    _dcghnianxian = p["dcghnianxian"]
+    _dcghbili     = p["dcghbili"]
+    _dcghdanjia   = p["dcghdanjia"]
+    _wxzctxnianxian = p["wxzctxnianxian"]
+    _yygjjtqbili  = p["yygjjtqbili"]
+    _dkbili       = p["dkbili"]
+    _dklilv       = p["dklilv"]
+    _dknianxian   = p["dknianxian"]
+    _cjshuilv     = p["cjshuilv"]
+    _jyfjialv     = p["jyfjialv"]
+    _dfjyfjialv   = p["dfjyfjialv"]
+    _sdshuilv     = p["sdshuilv"]
+    _sdsjmnianxian = p["sdsjmnianxian"]
+    _sdsjbnianxian = p["sdsjbnianxian"]
+    _ldzjbili     = p["ldzjbili"]
+    _zzshuilv     = p["zzshuilv"]
+    _jxsdkfangshi = p["jxsdkfangshi"]
+
+    if _edrongliang <= 0.5: _diannuan = 6.5e4
+    elif _edrongliang <= 1: _diannuan = 14.5e4
+    elif _edrongliang <= 2: _diannuan = 35e4
+    elif _edrongliang <= 4: _diannuan = 49e4
+    elif _edrongliang <= 10: _diannuan = 47.5e4
+    elif _edrongliang <= 100: _diannuan = 135e4
+    else: _diannuan = 475e4
+
+    _rlhuansuan = _edrongliang * 1e6
+    _glhuansuan = _edgonglv * 1e6
+    _dcxtchenben   = _rlhuansuan * _dcxtdanjia   / 1e4
+    _pcschenben    = _rlhuansuan * _pcsdanjia    / 1e4
+    _bmsemschenben = _rlhuansuan * _bmsemsdanjia / 1e4
+    _sybjdqchenben = _glhuansuan * _sybjdqdanjia / 1e4
+    _aztsfchenben  = (_dcxtchenben + _pcschenben + _bmsemschenben + _sybjdqchenben) * _aztsfbili + _diannuan
+    _sbheji        = _dcxtchenben + _pcschenben + _bmsemschenben + _sybjdqchenben + _aztsfchenben
+    _tjgcfchenben  = _rlhuansuan * _tjgcfdanjia / 1e4
+    _qtxiaoji      = _jsydifei + _jrxtongfei + _qxkfglifei
+    _ybfei         = (_sbheji + _tjgcfchenben + _qtxiaoji) * _ybfeilv
+    _qtheji        = _qtxiaoji + _ybfei
+    _kdkzzs        = _sbheji * _zzshuilv if _jxsdkfangshi == 1 else 0
+    _jttouzi       = _sbheji + _tjgcfchenben + _qtheji
+    _jsqlxi        = _jttouzi * _dkbili * _dklilv * 0.5
+    _dttouzi       = _jttouzi + _jsqlxi
+    _wxzcyuanzhi   = _qxkfglifei
+    _gdzcyuanzhi   = _jttouzi - _kdkzzs - _jsydifei - _wxzcyuanzhi
+    _dkjine        = _dttouzi * _dkbili
+    _zyzijin       = _dttouzi * (1 - _dkbili)
+
+    if _dknianxian > 0 and _dklilv > 0:
+        _nhkuane = _dkjine * (_dklilv * (1 + _dklilv) ** _dknianxian) / ((1 + _dklilv) ** _dknianxian - 1)
+    else:
+        _nhkuane = 0
+
+    _years = list(range(1, 21))
+    _fddianliang, _cddianliang = [], []
+    for yr in _years:
+        if yr == 1:
+            fd = _edrongliang * _nxhcishu * _cfdshendu * (1 - _snsjianlv)
+        else:
+            fd = _fddianliang[yr - 2] * (1 - _xxsjianlv)
+        _fddianliang.append(fd)
+        _cddianliang.append(fd / _xtxiaolv)
+
+    _yyshouru   = [fd * 1000 * _fddianjia / 1e4 for fd in _fddianliang]
+    _cdgdchenben = [cd * 1000 * _cddianjia / 1e4 for cd in _cddianliang]
+
+    _dcxtnzheju = _dcxtchenben  * (1 - _czhilv) / _dcxtzjnianxian
+    _pcsnzheju  = _pcschenben   * (1 - _czhilv) / _pcszjnianxian
+    _tjnzheju   = _tjgcfchenben * (1 - _czhilv) / _tjzjnianxian
+    _zjfei = []
+    for yr in _years:
+        zj = 0
+        if yr <= _dcxtzjnianxian: zj += _dcxtnzheju
+        if yr <= _pcszjnianxian:  zj += _pcsnzheju
+        if yr <= _tjzjnianxian:   zj += _tjnzheju
+        _zjfei.append(zj)
+
+    _txfei = [_wxzcyuanzhi / _wxzctxnianxian if yr <= _wxzctxnianxian else 0 for yr in _years]
+    _wxfei  = [_jttouzi * _wxfeilv] * 20
+    _bxfei  = [_jttouzi * _bxfeilv] * 20
+    _rgfei  = [_ryshuliang * _rjngongzi * (1 + _flfzgzbili)] * 20
+    _clfei  = [fd * 1000 * _clfdwchenben / 1e4 for fd in _fddianliang]
+    _qtafei = [_other] * 20
+    _dcghfei = [_rlhuansuan * _dcghbili * _dcghdanjia / 1e4 if yr == _dcghnianxian and _dcghnianxian > 0 else 0 for yr in _years]
+
+    _lxzhichu, _huanben = [], []
+    yue = _dkjine
+    for yr in _years:
+        if yr <= _dknianxian and yue > 0:
+            lixi = yue * _dklilv
+            ben  = _nhkuane - lixi
+            yue  = max(0, yue - ben)
+        else:
+            lixi, ben = 0, 0
+        _lxzhichu.append(lixi)
+        _huanben.append(ben)
+
+    _xxzzshui = [yy * _zzshuilv for yy in _yyshouru]
+    _jxzzshui = [cd * _zzshuilv for cd in _cdgdchenben]
+    _yjzzshui = [max(0, x - j) for x, j in zip(_xxzzshui, _jxzzshui)]
+    _sjfujia  = [zzs * (_cjshuilv + _jyfjialv + _dfjyfjialv) for zzs in _yjzzshui]
+
+    _zchenben = []
+    for i in range(20):
+        zc = (_cdgdchenben[i] + _dcghfei[i] + _zjfei[i] + _txfei[i] +
+              _wxfei[i] + _rgfei[i] + _bxfei[i] + _clfei[i] + _qtafei[i] + _lxzhichu[i])
+        _zchenben.append(zc)
+
+    _lrzonge = [_yyshouru[i] + _btshouru - _zchenben[i] - _sjfujia[i] for i in range(20)]
+    _mbkuisun, leiji_ks = [], 0
+    for lz in _lrzonge:
+        if leiji_ks > 0 and lz > 0:
+            mibu = min(leiji_ks, lz); leiji_ks -= mibu
+        elif lz < 0:
+            mibu = 0; leiji_ks += abs(lz)
+        else:
+            mibu = 0
+        _mbkuisun.append(mibu)
+
+    _ynsuode = [_lrzonge[i] - _mbkuisun[i] for i in range(20)]
+    _sdshui = []
+    for i, yr in enumerate(_years):
+        if _ynsuode[i] <= 0: _sdshui.append(0)
+        elif yr <= _sdsjmnianxian: _sdshui.append(0)
+        elif yr <= _sdsjmnianxian + _sdsjbnianxian: _sdshui.append(_ynsuode[i] * _sdshuilv * 0.5)
+        else: _sdshui.append(_ynsuode[i] * _sdshuilv)
+
+    _jlirun = [_lrzonge[i] - _sdshui[i] for i in range(20)]
+    _yygjjin = [max(0, jl * _yygjjtqbili) for jl in _jlirun]
+
+    _ldzijin = _yyshouru[0] * _ldzjbili
+    _xjliu = []
+    for i, yr in enumerate(_years):
+        cf = _jlirun[i] + _zjfei[i] + _txfei[i] - _huanben[i]
+        if yr == 20: cf += _ldzijin
+        _xjliu.append(cf)
+
+    _ljxjliu = [-(_zyzijin + _ldzijin)]
+    for cf in _xjliu:
+        _ljxjliu.append(_ljxjliu[-1] + cf)
+
+    _zxlv = 0.08
+    _npv = _ljxjliu[0]
+    for i, cf in enumerate(_xjliu):
+        _npv += cf / (1 + _zxlv) ** (i + 1)
+
+    def _calc_npv_r(rate):
+        v = _ljxjliu[0]
+        for i, cf in enumerate(_xjliu):
+            v += cf / (1 + rate) ** (i + 1)
+        return v
+
+    _irr = None
+    lo, hi = 0.0, 1.0
+    for _ in range(200):
+        mid = (lo + hi) / 2
+        if abs(_calc_npv_r(mid)) < 0.01: _irr = mid; break
+        elif _calc_npv_r(mid) > 0: lo = mid
+        else: hi = mid
+
+    _jthshouqi = None
+    for i, v in enumerate(_ljxjliu[1:], 1):
+        if v >= 0: _jthshouqi = i; break
+
+    _lcoe_fenzi = sum(_zchenben[i] / (1 + _zxlv) ** (i + 1) for i in range(20))
+    _lcoe_fenmu = sum(_fddianliang[i] * 1000 / (1 + _zxlv) ** (i + 1) for i in range(20))
+    _lcoe = _lcoe_fenzi * 1e4 / _lcoe_fenmu if _lcoe_fenmu > 0 else 0
+
+    _njlirun   = sum(_lrzonge) / 20
+    _njjlirun  = sum(_jlirun)  / 20
+    _ztzsyilv  = _njlirun  / _dttouzi if _dttouzi > 0 else 0
+    _zbjjlrunlv = _njjlirun / _zyzijin if _zyzijin > 0 else 0
+
+    return {
+        "动态投资(万元)": _dttouzi,
+        "静态投资(万元)": _jttouzi,
+        "自有资金(万元)": _zyzijin,
+        "NPV(万元)": _npv,
+        "IRR(%)": _irr * 100 if _irr else None,
+        "静态回收期(年)": _jthshouqi,
+        "LCOE(元/kWh)": _lcoe,
+        "ROI(%)": _ztzsyilv * 100,
+        "ROE(%)": _zbjjlrunlv * 100,
+    }
+
+
 tab1,tab2,tab3,tab4,tab5 = st.tabs(["主展板","web2","web3","web4","web5"])
 
 with tab1:
+    # ── 方案对比区 ────────────────────────────────────────────
+    if st.session_state.saved_scenarios:
+        st.subheader("📊 方案对比")
+        compare_names = st.multiselect(
+            "选择要对比的方案（可多选）",
+            options=list(st.session_state.saved_scenarios.keys()),
+            default=list(st.session_state.saved_scenarios.keys())[:2]
+                    if len(st.session_state.saved_scenarios) >= 2 else
+                    list(st.session_state.saved_scenarios.keys())
+        )
+        if compare_names:
+            compare_data = {"当前方案": calc_metrics(params)}
+            for name in compare_names:
+                compare_data[name] = calc_metrics(st.session_state.saved_scenarios[name])
+
+            df_compare = pd.DataFrame(compare_data).T
+            st.dataframe(df_compare.style.format({
+                "动态投资(万元)":  "{:.0f}",
+                "静态投资(万元)":  "{:.0f}",
+                "自有资金(万元)":  "{:.0f}",
+                "NPV(万元)":       "{:.0f}",
+                "IRR(%)":          lambda x: f"{x:.2f}" if x is not None else "N/A",
+                "静态回收期(年)":  lambda x: f"{x:.0f}" if x is not None else ">20年",
+                "LCOE(元/kWh)":    "{:.4f}",
+                "ROI(%)":          "{:.2f}",
+                "ROE(%)":          "{:.2f}",
+            }), use_container_width=True)
+        st.divider()
+
     # 第一排：投资规模
     st.subheader("投资规模")
     z1, m1, y1 = st.columns(3)
