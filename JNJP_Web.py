@@ -636,21 +636,21 @@ with st.sidebar:
 locals().update(params)
 
 if edrongliang <= 0.5:
-    diannuan = 6.5 * 1e4;
+    diannuan = 6.5
 elif 0.5 < edrongliang <= 1:
-    diannuan = 14.5 * 1e4;
+    diannuan = 14.5
 elif 1 < edrongliang <= 2:
-    diannuan = 35 * 1e4;
+    diannuan = 35.0
 elif 2 < edrongliang <= 4:
-    diannuan = 49 * 1e4;
+    diannuan = 49.0
 elif 4 < edrongliang <= 10:
-    diannuan = 47.5 * 1e4;
+    diannuan = 47.5
 elif 10 < edrongliang <= 100:
-    diannuan = 135 * 1e4
+    diannuan = 135.0
 elif 100 < edrongliang <= 200:
-    diannuan = 475 * 1e4
+    diannuan = 475.0
 else:
-    diannuan = 475 * 1e4 
+    diannuan = 475.0
     st.warning("输入容量过大，请输入200以内的数值。")
 #计算逻辑
 
@@ -964,13 +964,13 @@ def calc_metrics(p):
     _zzshuilv     = p["zzshuilv"]
     _jxsdkfangshi = p["jxsdkfangshi"]
 
-    if _edrongliang <= 0.5: _diannuan = 6.5e4
-    elif _edrongliang <= 1: _diannuan = 14.5e4
-    elif _edrongliang <= 2: _diannuan = 35e4
-    elif _edrongliang <= 4: _diannuan = 49e4
-    elif _edrongliang <= 10: _diannuan = 47.5e4
-    elif _edrongliang <= 100: _diannuan = 135e4
-    else: _diannuan = 475e4
+    if _edrongliang <= 0.5: _diannuan = 6.5
+    elif _edrongliang <= 1: _diannuan = 14.5
+    elif _edrongliang <= 2: _diannuan = 35.0
+    elif _edrongliang <= 4: _diannuan = 49.0
+    elif _edrongliang <= 10: _diannuan = 47.5
+    elif _edrongliang <= 100: _diannuan = 135.0
+    else: _diannuan = 475.0
 
     _rlhuansuan = _edrongliang * 1e6
     _glhuansuan = _edgonglv * 1e6
