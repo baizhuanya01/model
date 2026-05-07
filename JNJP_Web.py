@@ -51,7 +51,7 @@ canshu = {
             "type": "number_with_unit",
             "label": "额定功率",
             "var": "edgonglv",
-            "default": 10.0,
+            "default": 5.0,
             "step": 1.0,
             "units": ["MW", "kW"],          # 可选单位
             "unit_factors": {               # 换算到 MW：1 MW=1，1 kW=0.001
@@ -65,7 +65,7 @@ canshu = {
             "type": "number_with_unit",
             "label": "额定容量",
             "var": "edrongliang",
-            "default": 20.0,
+            "default": 2.5,
             "step": 1.0,
             "units": ["MWh", "kWh"],        # 可选单位
             "unit_factors": {               # 换算到 MWh：1 MWh=1，1 kWh=0.001
@@ -78,19 +78,19 @@ canshu = {
         "系统效率 (%)": {
             "type": "slider",
             "var": "xtxiaolv",
-            "min": 80,
-            "max": 95,
-            "default": 90,
+            "min": 70,
+            "max": 99,
+            "default": 94,
             "help": "充放电循环的综合效率",
             "convert": lambda x: x / 100
         },
         "年循环次数": {
             "type": "number",
             "var": "nxhcishu",
-            "default": 300,
-            "step": 10,
+            "default": 620,
+            "step": 30,
             "min": 200,
-            "max": 365,
+            "max": 800,
             "help": "每年完成的充放电循环次数"
         },
         "充放电深度 (%)": {
@@ -127,7 +127,7 @@ canshu = {
         "电池系统单价 (元/Wh)": {
             "type": "number",
             "var": "dcxtdanjia",
-            "default": 0.9,
+            "default": 0.65,
             "step": 0.1,
             "format": "%.2f",
             "help": "锂电池储能系统单位价格"
@@ -159,7 +159,7 @@ canshu = {
         "土建工程费单价 (元/Wh)": {
             "type": "number",
             "var": "tjgcfdanjia",
-            "default": 0.15,
+            "default": 0.1,
             "step": 0.01,
             "format": "%.2f",
             "help": "土建工程单位成本"
@@ -198,8 +198,8 @@ canshu = {
             "type": "slider",
             "var": "ybfeilv",
             "min": 3,
-            "max": 10,
-            "default": 5,
+            "max": 20,
+            "default": 7,
             "help": "预备费比例",
             "convert": lambda x: x / 100
         }
@@ -209,7 +209,7 @@ canshu = {
         "放电电价 (元/kWh)": {
             "type": "number",
             "var": "fddianjia",
-            "default": 1.0,
+            "default": 0.9039,
             "step": 0.1,
             "format": "%.2f",
             "help": "峰时售电价格"
@@ -217,7 +217,7 @@ canshu = {
         "充电电价 (元/kWh)": {
             "type": "number",
             "var": "cddianjia",
-            "default": 0.3,
+            "default": 0.4413,
             "step": 0.05,
             "format": "%.2f",
             "help": "谷时购电价格"
@@ -244,7 +244,7 @@ canshu = {
         "PCS折旧年限 (年)": {
             "type": "number",
             "var": "pcszjnianxian",
-            "default": 15,
+            "default": 10,
             "step": 1,
             "min": 10,
             "max": 20,
@@ -264,7 +264,7 @@ canshu = {
             "var": "czhilv",
             "min": 0,
             "max": 10,
-            "default": 5,
+            "default": 4,
             "help": "资产残值率",
             "convert": lambda x: x / 100
         },
@@ -388,7 +388,7 @@ canshu = {
             "var": "dklilv",
             "min": 3.0,
             "max": 8.0,
-            "default": 4.9,
+            "default": 5,
             "step": 0.1,
             "help": "年贷款利率",
             "convert": lambda x: x / 100
@@ -461,7 +461,7 @@ canshu = {
             "var": "ldzjbili",
             "min": 1,
             "max": 20,
-            "default": 5,
+            "default": 15,
             "help": "流动资金占营业收入的比例",
             "convert": lambda x: x / 100
         },
