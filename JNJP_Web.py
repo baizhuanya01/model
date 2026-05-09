@@ -759,23 +759,29 @@ FA_diqv = {
     },
 }
 
-with st.sidebar:
-    with st.form("sidebar_form"):
-        selected_FA_diqv = st.selectbox("选择预设方案",options=list(FA_diqv.keys()))
-        FA_diqv_s =FA_diqv[selected_FA_diqv]
-        submitted2 = st.form_submit_button("确定")
-
-    if submitted2:
-        st.session_state.params = params
-        st.success("参数已更新")
-
-# 首次运行时 params 还未从 tab2 收集，用各参数默认值初始化（存 convert 后的值）
 if "params" not in st.session_state:
     st.session_state.params = {
         config["var"]: (config["convert"](config["default"]) if "convert" in config else config["default"])
         for group in canshu.values()
         for config in group.values()
     }
+
+with st.sidebar:
+    with st.form("sidebar_form"):
+        selected_FA_diqv = st.selectbox("简易参数预设", options=list(FA_diqv.keys()))
+        submitted2 = st.form_submit_button("加载预设")
+
+    if submitted2:
+        # 获取选中的城市数据
+        yv_data = FA_diqv[selected_FA_diqv]
+        # 更新当前的 session_state
+        new_params = st.session_state.params.copy()
+        for var_name, value in yv_data.items():
+            new_params[var_name] = value
+        
+        st.session_state.params = new_params
+        st.success(f"已加载当前方案")
+        st.rerun()
 
 params = st.session_state.params
 locals().update(params)
@@ -1274,15 +1280,14 @@ def calc_metrics(p):
         "ROE(%)": _zbjjlrunlv * 100,
     }
 
-tab1,tab2,tab3,tab4,tab5 = st.tabs(["主展板","web2","web3","web4","web5"])
+tab1,tab2,tab3,tab4,tab5 = st.tabs(["主展板","参数配置","web3","web4","web5"])
 
 if "saved_scenarios" not in st.session_state:
     st.session_state.saved_scenarios = {}
 
 with tab2:
-    preset_vals = FA_diqv_s
     with st.form("params_form"):
-        params = {}
+        temp_params = {}
         icons = {
         "技术参数": "⚡",
         "成本参数": "💰",
@@ -1292,22 +1297,27 @@ with tab2:
         }
         for group_name, group_params in canshu.items():
             icon = icons.get(group_name,"📋")
-            with st.expander(label=f"{icon}{group_name}",expanded=True):
-                param_names = list(group_params.keys())
-                selected = st.multiselect("选择参数",options=param_names,default=None,help="选择你需要的参数，可多选。")
+            with st.expander(label=f"{icon}{group_name}"):
                 for param_name, config in group_params.items():
                     var = config["var"]
-                    if var in preset_vals:
-                        config = {**config, "default": preset_vals[var]}
+                    # 如果当前变量在 session_state 里有值，覆盖默认值
+                    # 这样侧边栏选了“上海”后，这里的输入框会自动变成上海的数据
+                    current_default = st.session_state.params.get(var, config["default"])
                     
-                    value = render_param(param_name, config)
-                    params[var] = value
+                    # 修改 config 里的默认值以供 render_param 使用
+                    temp_config = config.copy()
+                    temp_config["default"] = current_default
+                    
+                    # 渲染控件
+                    value = render_param(param_name, temp_config)
+                    temp_params[var] = value
 
-        # tab2 收集完毕，同步回 session_state 供计算逻辑使用
-        submitted1 = st.form_submit_button("确定")
+        submitted1 = st.form_submit_button("保存并应用参数修改")
+        
     if submitted1:
-        st.session_state.params = params
+        st.session_state.params = temp_params
         st.success("参数已更新")
+        st.rerun()
 
     # ── 方案保存区 ────────────────────────────────────────────
     st.divider()
