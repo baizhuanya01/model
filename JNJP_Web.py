@@ -765,10 +765,10 @@ with st.sidebar:
         FA_diqv_s =FA_diqv[selected_FA_diqv]
         submitted2 = st.form_submit_button("确定")
 
-    if submitted:
+    if submitted2:
         st.session_state.params = params
         st.success("参数已更新")
-        
+
 # 首次运行时 params 还未从 tab2 收集，用各参数默认值初始化（存 convert 后的值）
 if "params" not in st.session_state:
     st.session_state.params = {
@@ -1305,7 +1305,7 @@ with tab2:
 
         # tab2 收集完毕，同步回 session_state 供计算逻辑使用
         submitted1 = st.form_submit_button("确定")
-    if submitted:
+    if submitted1:
         st.session_state.params = params
         st.success("参数已更新")
 
