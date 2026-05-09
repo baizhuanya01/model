@@ -760,9 +760,15 @@ FA_diqv = {
 }
 
 with st.sidebar:
-    selected_FA_diqv = st.selectbox("选择预设方案",options=list(FA_diqv.keys()))
-    FA_diqv_s =FA_diqv[selected_FA_diqv]
+    with st.form("sidebar_form"):
+        selected_FA_diqv = st.selectbox("选择预设方案",options=list(FA_diqv.keys()))
+        FA_diqv_s =FA_diqv[selected_FA_diqv]
+        submitted2 = st.form_submit_button("确定")
 
+    if submitted:
+        st.session_state.params = params
+        st.success("参数已更新")
+        
 # 首次运行时 params 还未从 tab2 收集，用各参数默认值初始化（存 convert 后的值）
 if "params" not in st.session_state:
     st.session_state.params = {
@@ -1275,30 +1281,33 @@ if "saved_scenarios" not in st.session_state:
 
 with tab2:
     preset_vals = FA_diqv_s
+    with st.form("params_form"):
+        params = {}
+        icons = {
+        "技术参数": "⚡",
+        "成本参数": "💰",
+        "收益参数": "📈",
+        "财务参数": "🏦",
+        "税务与贷款": "💼"
+        }
+        for group_name, group_params in canshu.items():
+            icon = icons.get(group_name,"📋")
+            with st.expander(label=f"{icon}{group_name}",expanded=True):
+                param_names = list(group_params.keys())
+                selected = st.multiselect("选择参数",options=param_names,default=None,help="选择你需要的参数，可多选。")
+                for param_name, config in group_params.items():
+                    var = config["var"]
+                    if var in preset_vals:
+                        config = {**config, "default": preset_vals[var]}
+                    
+                    value = render_param(param_name, config)
+                    params[var] = value
 
-    params = {}
-    icons = {
-    "技术参数": "⚡",
-    "成本参数": "💰",
-    "收益参数": "📈",
-    "财务参数": "🏦",
-    "税务与贷款": "💼"
-    }
-    for group_name, group_params in canshu.items():
-        icon = icons.get(group_name,"📋")
-        with st.expander(label=f"{icon}{group_name}",expanded=True):
-            param_names = list(group_params.keys())
-            selected = st.multiselect("选择参数",options=param_names,default=None,help="选择你需要的参数，可多选。")
-            for param_name, config in group_params.items():
-                var = config["var"]
-                if var in preset_vals:
-                    config = {**config, "default": preset_vals[var]}
-                
-                value = render_param(param_name, config)
-                params[var] = value
-
-    # tab2 收集完毕，同步回 session_state 供计算逻辑使用
-    st.session_state.params = params
+        # tab2 收集完毕，同步回 session_state 供计算逻辑使用
+        submitted1 = st.form_submit_button("确定")
+    if submitted:
+        st.session_state.params = params
+        st.success("参数已更新")
 
     # ── 方案保存区 ────────────────────────────────────────────
     st.divider()
