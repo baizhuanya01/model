@@ -738,14 +738,17 @@ FA_diqv = {
 
 if "params" not in st.session_state:
     st.session_state.params = {
-        config["var"]: (config["convert"](config["default"]) if "convert" in config else config["default"])
+        config["var"]: config["default"]
         for group in canshu.values()
         for config in group.values()
     }
 
+if "saved_scenarios" not in st.session_state:
+    st.session_state.saved_scenarios = {}
+
 with st.sidebar:
     with st.form("sidebar_form"):
-        selected_FA_diqv = st.selectbox("简易参数预设", options=list(FA_diqv.keys()))
+        selected_FA_diqv = st.selectbox("简易参数预设(详细自定义见下方)", options=list(FA_diqv.keys()))
         submitted2 = st.form_submit_button("加载预设")
 
     if submitted2:
@@ -760,6 +763,55 @@ with st.sidebar:
         st.success(f"已加载当前方案")
         st.rerun()
 
+    st.divider()
+    
+    with st.form("params_form"):
+        new_raw_params = {}
+        icons = {
+        "技术参数": "⚡",
+        "成本参数": "💰",
+        "收益参数": "📈",
+        "财务参数": "🏦",
+        "税务与贷款": "💼"
+        }
+        for group_name, group_params in canshu.items():
+            icon = icons.get(group_name,"📋")
+            with st.expander(label=f"{icon}{group_name}"):
+                for param_name, config in group_params.items():
+                    var = config["var"]
+                    val_in_store = st.session_state.params.get(var, config["default"])
+                    
+                    # 渲染控件，直接传值进去
+                    # 不再使用 temp_config = config.copy()
+                    new_val = render_param(param_name, config, val_in_store)
+                    new_raw_params[var] = new_val
+
+        submitted1 = st.form_submit_button("保存并应用参数修改")
+        
+    if submitted1:
+        st.session_state.params = new_raw_params
+        st.success("参数已更新")
+        st.rerun()
+
+    # ── 方案保存区 ────────────────────────────────────────────
+    st.subheader("💾 保存方案")
+
+    scenario_name = st.text_input("方案名称", placeholder="例如：基准方案、高电价情景…", key="scenario_name_input")
+    if st.button("保存当前方案", use_container_width=True):
+        if scenario_name.strip():
+            st.session_state.saved_scenarios[scenario_name.strip()] = dict(params)
+            st.success(f"已保存：{scenario_name.strip()}")
+        else:
+            st.warning("请先输入方案名称")
+
+    if st.session_state.saved_scenarios:
+        st.caption(f"已保存 {len(st.session_state.saved_scenarios)} 个方案")
+        del_name = st.selectbox("删除方案", options=["—"] + list(st.session_state.saved_scenarios.keys()), key="del_scenario")
+        if st.button("删除所选方案", use_container_width=True):
+            if del_name != "—":
+                del st.session_state.saved_scenarios[del_name]
+                st.rerun()
+                
 params = st.session_state.params
 raw_params = st.session_state.params
 calc_params = {}
@@ -770,10 +822,11 @@ for group in canshu.values():
         v = config["var"]
         # 获取当前值，如果没有则取默认值
         val = raw_params.get(v, config["default"])
-        if "convert" in config and val > 1.5: # 增加判断，防止重复除以100
-             calc_params[v] = config["convert"](val)
+        # session_state 始终存原始值，取出时统一做 convert
+        if "convert" in config:
+            calc_params[v] = config["convert"](val)
         else:
-             calc_params[v] = val
+            calc_params[v] = val
 
 # 3. 将转换后的干净数据展开为变量
 locals().update(calc_params)
@@ -1296,55 +1349,6 @@ tab1,tab2,tab3,tab4,tab5 = st.tabs(["主展板","参数配置","web3","web4","we
 
 if "saved_scenarios" not in st.session_state:
     st.session_state.saved_scenarios = {}
-
-with tab2:
-    with st.form("params_form"):
-        new_raw_params = {}
-        icons = {
-        "技术参数": "⚡",
-        "成本参数": "💰",
-        "收益参数": "📈",
-        "财务参数": "🏦",
-        "税务与贷款": "💼"
-        }
-        for group_name, group_params in canshu.items():
-            icon = icons.get(group_name,"📋")
-            with st.expander(label=f"{icon}{group_name}"):
-                for param_name, config in group_params.items():
-                    var = config["var"]
-                    val_in_store = st.session_state.params.get(var, config["default"])
-                    
-                    # 渲染控件，直接传值进去
-                    # 不再使用 temp_config = config.copy()
-                    new_val = render_param(param_name, config, val_in_store)
-                    new_raw_params[var] = new_val
-
-        submitted1 = st.form_submit_button("保存并应用参数修改")
-        
-    if submitted1:
-        st.session_state.params = new_raw_params
-        st.success("参数已更新")
-        st.rerun()
-
-    # ── 方案保存区 ────────────────────────────────────────────
-    st.divider()
-    st.subheader("💾 保存方案")
-
-    scenario_name = st.text_input("方案名称", placeholder="例如：基准方案、高电价情景…", key="scenario_name_input")
-    if st.button("保存当前方案", use_container_width=True):
-        if scenario_name.strip():
-            st.session_state.saved_scenarios[scenario_name.strip()] = dict(params)
-            st.success(f"已保存：{scenario_name.strip()}")
-        else:
-            st.warning("请先输入方案名称")
-
-    if st.session_state.saved_scenarios:
-        st.caption(f"已保存 {len(st.session_state.saved_scenarios)} 个方案")
-        del_name = st.selectbox("删除方案", options=["—"] + list(st.session_state.saved_scenarios.keys()), key="del_scenario")
-        if st.button("删除所选方案", use_container_width=True):
-            if del_name != "—":
-                del st.session_state.saved_scenarios[del_name]
-                st.rerun()
 
 
 with tab1:
