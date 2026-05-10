@@ -34,6 +34,62 @@ st.markdown("""
     [data-testid="stMetricDelta"] [class*="negative"] {
         color: orange !important;
     }
+
+    /* 缩小 metric 组件字体，减少视觉空间 */
+    [data-testid="stMetric"] {
+        padding: 2px 6px !important;
+    }
+    [data-testid="stMetricLabel"] {
+        font-size: 0.78rem !important;
+        margin-bottom: 0 !important;
+    }
+    [data-testid="stMetricValue"] {
+        font-size: 1.05rem !important;
+        line-height: 1.2 !important;
+    }
+    [data-testid="stMetricDelta"] {
+        font-size: 0.70rem !important;
+        margin-top: 0 !important;
+    }
+    /* 缩小 subheader 并压缩上下间距 */
+    [data-testid="stHeadingWithActionElements"] h3 {
+        font-size: 0.95rem !important;
+        margin: 4px 0 2px 0 !important;
+        padding: 0 !important;
+    }
+    /* 压缩 divider 上下空白 */
+    hr {
+        margin: 4px 0 !important;
+    }
+    /* 压缩 columns 之间的间距 */
+    [data-testid="stHorizontalBlock"] {
+        gap: 8px !important;
+    }
+    /* 压缩 block 容器的内边距 */
+    [data-testid="stVerticalBlock"] > div {
+        padding-top: 2px !important;
+        padding-bottom: 2px !important;
+    }
+
+    /* 侧边栏圆角 */
+    [data-testid="stSidebar"] > div:first-child {
+        border-radius: 0 16px 16px 0;
+        overflow: hidden;
+    }
+    section[data-testid="stSidebar"] {
+        border-radius: 0 16px 16px 0 !important;
+        overflow: hidden !important;
+    }
+    section[data-testid="stSidebar"] > div {
+        border-radius: 0 16px 16px 0 !important;
+        overflow: hidden !important;
+        box-shadow: 2px 0 12px rgba(0,0,0,0.08);
+    }
+    /* expander 圆角 */
+    [data-testid="stExpander"] {
+        border-radius: 8px !important;
+        overflow: hidden;
+    }
     </style>
     """, unsafe_allow_html=True)
 
@@ -571,36 +627,43 @@ FA_diqv = {
         "fddianjia":  1.23,
         "cddianjia":  0.34,
         "jsydifei":   450.0,   # 90万/亩×5亩
+        "rjngongzi":  12.6,
     },
     "浙江": {
         "fddianjia":  1.02,
         "cddianjia":  0.24,
         "jsydifei":   150.0,   # 30万/亩×5亩
+        "rjngongzi":  11.0,
     },
     "江苏": {
         "fddianjia":  1.05,
         "cddianjia":  0.30,
         "jsydifei":   150.0,
+        "rjngongzi":   9.0,
     },
     "安徽": {
         "fddianjia":  0.95,
         "cddianjia":  0.25,
         "jsydifei":    90.0,   # 18万/亩×5亩
+        "rjngongzi":   7.5,
     },
     "福建": {
         "fddianjia":  0.95,
         "cddianjia":  0.30,
         "jsydifei":   125.0,   # 25万/亩×5亩
+        "rjngongzi":   8.0,
     },
     "江西": {
         "fddianjia":  0.90,
         "cddianjia":  0.20,
         "jsydifei":    80.0,   # 16万/亩×5亩
+        "rjngongzi":   9.0,
     },
     "山东": {
         "fddianjia":  0.95,
         "cddianjia":  0.20,
         "jsydifei":   125.0,
+        "rjngongzi":   9.0,
     },
 
     # ── 华北 ──────────────────────────────────────────────────
@@ -608,26 +671,31 @@ FA_diqv = {
         "fddianjia":  1.10,
         "cddianjia":  0.45,
         "jsydifei":   475.0,   # 95万/亩×5亩
+        "rjngongzi":  15.1,
     },
     "天津": {
         "fddianjia":  1.05,
         "cddianjia":  0.40,
         "jsydifei":   140.0,   # 28万/亩×5亩
+        "rjngongzi":   9.0,
     },
     "河北": {
         "fddianjia":  0.85,
         "cddianjia":  0.25,
         "jsydifei":   110.0,   # 22万/亩×5亩
+        "rjngongzi":   8.0,
     },
     "山西": {
         "fddianjia":  0.85,
         "cddianjia":  0.25,
         "jsydifei":    75.0,   # 15万/亩×5亩
+        "rjngongzi":   9.0,
     },
     "内蒙古": {                # ⚠️ 表注"尚未执行固定分时电价"，峰谷价差仅0.25-0.35，数值为估算
         "fddianjia":  0.60,
         "cddianjia":  0.35,
         "jsydifei":    65.0,   # 13万/亩×5亩
+        "rjngongzi":   9.0,
     },
 
     # ── 华南 ──────────────────────────────────────────────────
@@ -635,16 +703,19 @@ FA_diqv = {
         "fddianjia":  1.02,
         "cddianjia":  0.29,
         "jsydifei":   300.0,   # 60万/亩×5亩
+        "rjngongzi":  12.5,
     },
     "海南": {
         "fddianjia":  1.01,
         "cddianjia":  0.38,
         "jsydifei":   100.0,   # 20万/亩×5亩
+        "rjngongzi":  11.0,
     },
     "广西": {
         "fddianjia":  0.75,
         "cddianjia":  0.40,
         "jsydifei":    70.0,   # 14万/亩×5亩
+        "rjngongzi":  11.2,
     },
 
     # ── 华中 ──────────────────────────────────────────────────
@@ -652,16 +723,19 @@ FA_diqv = {
         "fddianjia":  0.95,
         "cddianjia":  0.35,
         "jsydifei":    90.0,
+        "rjngongzi":  10.5,
     },
     "河南": {
         "fddianjia":  0.90,
         "cddianjia":  0.35,
         "jsydifei":   100.0,
+        "rjngongzi":   7.5,
     },
     "湖北": {
         "fddianjia":  0.95,
         "cddianjia":  0.35,
         "jsydifei":   100.0,
+        "rjngongzi":   9.6,
     },
 
     # ── 西南 ──────────────────────────────────────────────────
@@ -669,53 +743,56 @@ FA_diqv = {
         "fddianjia":  0.85,
         "cddianjia":  0.30,
         "jsydifei":    90.0,
+        "rjngongzi":   7.0,
     },
     "重庆": {
         "fddianjia":  0.90,
         "cddianjia":  0.35,
         "jsydifei":    90.0,
+        "rjngongzi":   9.0,
     },
     "贵州": {
         "fddianjia":  0.75,
         "cddianjia":  0.35,
         "jsydifei":    70.0,
+        "rjngongzi":   7.5,
     },
     "云南": {
         "fddianjia":  0.75,
         "cddianjia":  0.35,
         "jsydifei":    75.0,
+        "rjngongzi":   8.0,
     },
-    "西藏": {                  # ⚠️ 表注"暂未统一固定分时"，数值为估算
-        "fddianjia":  0.70,
-        "cddianjia":  0.30,
-        "jsydifei":    60.0,   # 12万/亩×5亩
-    },
-
     # ── 西北 ──────────────────────────────────────────────────
     "陕西": {                  # ⚠️ 充放电电价表中无陕西，数值为估算
         "fddianjia":  0.80,
         "cddianjia":  0.28,
         "jsydifei":    85.0,   # 17万/亩×5亩
+        "rjngongzi":   9.5,
     },
     "甘肃": {                  # ⚠️ 充放电电价表中无甘肃，数值为估算
         "fddianjia":  0.75,
         "cddianjia":  0.25,
         "jsydifei":    60.0,   # 12万/亩×5亩
+        "rjngongzi":   7.0,
     },
     "新疆": {                  # ⚠️ 充放电电价表中无新疆，数值为估算
         "fddianjia":  0.65,
         "cddianjia":  0.20,
         "jsydifei":    50.0,   # 10万/亩×5亩
+        "rjngongzi":   9.5,
     },
     "青海": {                  # ⚠️ 充放电电价表中无青海，数值为估算
         "fddianjia":  0.65,
         "cddianjia":  0.22,
         "jsydifei":    50.0,
+        "rjngongzi":   9.0,
     },
     "宁夏": {                  # ⚠️ 充放电电价表中无宁夏，数值为估算
         "fddianjia":  0.65,
         "cddianjia":  0.22,
         "jsydifei":    45.0,   # 9万/亩×5亩
+        "rjngongzi":   8.5,
     },
 
     # ── 东北 ──────────────────────────────────────────────────
@@ -723,16 +800,19 @@ FA_diqv = {
         "fddianjia":  0.80,
         "cddianjia":  0.28,
         "jsydifei":    75.0,
+        "rjngongzi":  10.0,
     },
     "吉林": {                  # ⚠️ 充放电电价表中无吉林，数值为估算
         "fddianjia":  0.75,
         "cddianjia":  0.25,
         "jsydifei":    65.0,   # 13万/亩×5亩
+        "rjngongzi":   8.5,
     },
     "黑龙江": {                # ⚠️ 充放电电价表中无黑龙江，数值为估算
         "fddianjia":  0.75,
         "cddianjia":  0.25,
         "jsydifei":    65.0,
+        "rjngongzi":   8.5,
     },
 }
 
@@ -764,7 +844,7 @@ with st.sidebar:
         st.rerun()
 
     st.divider()
-    
+
     with st.form("params_form"):
         new_raw_params = {}
         icons = {
@@ -1128,6 +1208,154 @@ lcoe_star = max(0, min(1, lcoe_star)) # 限制 in 0-1
 # 3. 计算综合评分 S
 S_score = ((60 * capex_star + 43 * lcoe_star) / 103) * 100
 
+# ══════════════════════════════════════════════════════════════
+# 水波图函数区
+# 每个函数负责：① 计算水位 ② 生成 echarts option ③ 渲染图表
+# 调用方式：在 tab 里直接 render_xxx_liquid()
+# ══════════════════════════════════════════════════════════════
+
+def make_liquid_option(level, colors, label_text, key):
+    """
+    通用水波图 option 生成 + 渲染函数
+    
+    参数：
+        level      : 水位，0.0 ~ 1.0（超出范围会被截断）
+        colors     : 波浪颜色列表，如 ["#2ecc71", "#58d68d", "#82e0aa"]
+                     第一个颜色最深（最前面的波），依次变浅
+        label_text : 图中央显示的文字，如 "12.3%" 或 "7年"
+        key        : st_echarts 的唯一 key，同一页面不能重复
+    """
+    from streamlit_echarts import st_echarts
+
+    # 截断到合法范围，防止负水位或超过100%
+    level = max(0.0, min(1.0, level))
+
+    # 三层波浪，水位依次降低 0.05，制造层次感
+    # max(0, ...) 防止低水位时出现负值导致报错
+    wave_data = [
+        level,
+        max(0, level - 0.05),
+        max(0, level - 0.10),
+    ]
+
+    option = {
+        "series": [{
+            "type": "liquidFill",
+            "data": wave_data,
+            "radius": "80%",           # 圆形水球半径，占容器的80%
+            "center": ["50%", "50%"],  # 居中
+            "color": colors,           # 波浪颜色，与 wave_data 一一对应
+            "backgroundStyle": {
+                "borderWidth": 2,
+                "borderColor": colors[0],   # 外圈边框颜色与主波浪一致
+                "color": "#f4f6f7"          # 球内背景色（未被水覆盖的部分）
+            },
+            "outline": {
+                "show": True,
+                "borderDistance": 5,        # 外轮廓与球的间距
+                "itemStyle": {
+                    "borderWidth": 4,
+                    "borderColor": colors[0],
+                    "shadowBlur": 10,
+                    "shadowColor": "rgba(0,0,0,0.2)"
+                }
+            },
+            "label": {
+                "show": True,
+                "color": "#283747",         # 水面以上文字颜色（深色）
+                "insideColor": "#fff",      # 水面以下文字颜色（白色）
+                "fontSize": 14,             # 小球小，字体也要小
+                "fontWeight": "bold",
+                "align": "center",
+                "baseline": "middle",
+                "position": ["50%", "50%"],
+                "formatter": label_text     # 显示的文字内容
+            }
+        }]
+    }
+
+    st_echarts(option, height="120px", key=key)
+
+
+def render_s_liquid(s_score, key="s_liquid"):
+    """
+    成本性评分水波图（S分）
+    
+    评分规则：直接使用 S_score（0~100），已在外部计算好
+    颜色：绿色系（分越高越绿）
+    
+    参数：
+        s_score : 成本性综合评分，0~100
+        key     : echarts 唯一 key
+    """
+    level = s_score / 100  # S_score 本身就是 0-100，直接除以100得水位
+    label = f"{s_score:.1f} 分"
+    colors = ["#2ecc71", "#58d68d", "#82e0aa"]  # 绿色系
+    make_liquid_option(level, colors, label, key)
+
+
+def render_irr_liquid(irr, key="irr_liquid"):
+    """
+    IRR 盈利性水波图
+    
+    评分规则（线性插值）：
+        IRR < 6.5%  → 不合格，水位 = 0，显示"不合格"
+        IRR = 6.5%  → 60分，水位 = 0.60
+        IRR = 20%   → 100分，水位 = 1.00
+        中间线性插值：score = 60 + (irr - 0.065) / (0.20 - 0.065) × 40
+    
+    颜色：蓝色系
+    
+    参数：
+        irr : IRR 小数形式，如 0.12 表示 12%（None 表示无法计算）
+        key : echarts 唯一 key
+    """
+    if irr is None or irr < 0.065:
+        # 不合格：水位为0，显示红色提示
+        make_liquid_option(0.0, ["#e74c3c", "#ec7063", "#f1948a"], "不合格", key)
+        return
+
+    # 线性插值：6.5% → 60分，20% → 100分
+    # 公式：score = 60 + (irr - 0.065) / (0.20 - 0.065) * 40
+    score = 60 + (irr - 0.065) / (0.20 - 0.065) * 40
+    score = min(100, score)   # 超过20%也最多100分
+    level = score / 100
+    label = f"{irr * 100:.1f}%"
+    colors = ["#3498db", "#5dade2", "#85c1e9"]  # 蓝色系
+    make_liquid_option(level, colors, label, key)
+
+
+def render_hsq_liquid(jthshouqi, key="hsq_liquid"):
+    """
+    动态回收期水波图
+    
+    评分规则（线性插值，注意：回收期越短越好，水位反向）：
+        回收期 > 10年 → 不合格，水位 = 0，显示"不合格"
+        回收期 = 10年 → 60分，水位 = 0.60
+        回收期 = 4年  → 100分，水位 = 1.00
+        中间线性插值：score = 60 + (10 - hsq) / (10 - 4) × 40
+    
+    颜色：橙色系
+    
+    参数：
+        jthshouqi : 静态回收期（年），None 表示 20 年内未回收
+        key       : echarts 唯一 key
+    """
+    if jthshouqi is None or jthshouqi > 10:
+        # 不合格：水位为0，显示红色提示
+        make_liquid_option(0.0, ["#e74c3c", "#ec7063", "#f1948a"], "不合格", key)
+        return
+
+    # 线性插值：10年 → 60分，4年 → 100分
+    # 公式：score = 60 + (10 - hsq) / (10 - 4) * 40
+    score = 60 + (10 - jthshouqi) / (10 - 4) * 40
+    score = min(100, score)   # 短于4年也最多100分
+    level = score / 100
+    label = f"{jthshouqi} 年"
+    colors = ["#e67e22", "#f0a500", "#f7c948"]  # 橙色系
+    make_liquid_option(level, colors, label, key)
+
+
 def calc_metrics(p):
     """根据参数字典 p 计算并返回核心财务指标字典"""
     _edrongliang  = p["edrongliang"]
@@ -1382,47 +1610,59 @@ with tab1:
         st.divider()
 
     # 第一排：投资规模
-    st.subheader("投资规模")
-    z1, m1, y1 = st.columns(3)
+    st.subheader("投资规模及资金回收评分")
+    z1, m1, y1, e1 = st.columns(4, vertical_alignment="center")
     z1.metric("动态投资", f"{dttouzi:.0f} 万元")
     m1.metric("静态投资", f"{jttouzi:.0f} 万元")
     y1.metric("自有资金", f"{zyzijin:.0f} 万元")
-
-    st.divider()
+    with e1:
+        render_hsq_liquid(jthshouqi)
 
     # 第二排：核心收益指标
-    st.subheader("核心收益")
-    z2, m2, y2 = st.columns(3)
+    st.subheader("核心收益及irr评分")
+    z2, m2, y2, e2 = st.columns(4, vertical_alignment="center")
     z2.metric("NPV（净现值）", f"{npv:.0f} 万元",
               delta="项目可行 ✓" if npv > 0 else "-项目不可行 ✗")
     m2.metric("IRR（内部收益率）", f"{irr*100:.2f}%" if irr else "N/A",
               delta="高于基准 ✓" if irr and irr > 0.08 else "-低于基准 ✗")
     y2.metric("静态回收期", f"{jthshouqi} 年" if jthshouqi else ">20年",
               delta="回收较快 ✓" if jthshouqi and jthshouqi <= 10 else "-回收较慢 ✗")
-
-    st.divider()
-
+    with e2:
+        render_irr_liquid(irr)
+              
     # 第三排：效率指标
-    st.subheader("效率指标")
-    z3, m3, y3 = st.columns(3)
+    st.subheader("效率指标及综合评分")
+    z3, m3, y3, e3 = st.columns(4, vertical_alignment="center")
     z3.metric("度电成本 LCOE", f"{lcoe:.4f} 元/kWh",
               delta="低于电价 ✓" if lcoe < fddianjia else "-高于电价 ✗")
     m3.metric("总投资收益率 ROI", f"{ztzsyilv*100:.2f}%",
               delta="达标 ✓" if ztzsyilv > 0.08 else "-未达标 ✗")
     y3.metric("资本金净利润率 ROE", f"{zbjjlrunlv*100:.2f}%",
               delta="达标 ✓" if zbjjlrunlv > 0.10 else "-未达标 ✗")
-        
+    with e3:
+        render_s_liquid(S_score)
+    st.divider()
+
     fig1 = go.Figure()
+    fig1.update_layout(margin=dict(t=10, b=10, l=10, r=10), height=280)
     fig1.add_trace(go.Scatter(x=list(range(0, 21)), y=ljxjliu, name="累计现金流", fill="tozeroy"))
     fig2 = go.Figure()
+    fig2.update_layout(margin=dict(t=10, b=10, l=10, r=10), height=280)
     fig2.add_trace(go.Pie(
         labels=["充电成本", "电池更换", "折旧费", "摊销费",
                 "维修费", "人工费", "保险费", "材料费", "其他", "利息"],
         values=[sum(cdgdchenben), sum(dcghfei), sum(zjfei), sum(txfei),
                 sum(wxfei), sum(rgfei), sum(bxfei), sum(clfei), sum(qtafei), sum(lxzhichu)]
     ))
-    st.header("累计现金流图")
-    st.plotly_chart(fig1, use_container_width=True, key="ljxjinliu")
-    st.header("成本构成图")
-    st.plotly_chart(fig2, use_container_width=True, key="chenbengouchen")
+
+    L1, R1 = st.columns(2, gap="large")
+    with L1:
+        with st.container(border=True):
+            st.caption("📈 累计现金流")
+            st.plotly_chart(fig1, use_container_width=True, key="ljxjinliu")
+    with R1:
+        with st.container(border=True):
+            st.caption("🥧 成本构成")
+            st.plotly_chart(fig2, use_container_width=True, key="chenbengouchen")
+
 
