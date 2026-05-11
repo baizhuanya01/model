@@ -77,11 +77,11 @@ st.markdown("""
     /* 侧边栏圆角 */
     [data-testid="stSidebar"] > div:first-child {
         border-radius: 0 16px 16px 0;
-        overflow: hidden;
+        overflow: auto;
     }
     section[data-testid="stSidebar"] {
         border-radius: 0 16px 16px 0 !important;
-        overflow: hidden !important;
+        overflow: auto !important;
     }
     section[data-testid="stSidebar"] > div {
         border-radius: 0 16px 16px 0 !important;
