@@ -664,8 +664,8 @@ FA_diqv = {
         "rjngongzi":   7.5,
     },
     "福建": {
-        "fddianjia":  0.95,
-        "cddianjia":  0.30,
+        "fddianjia":  0.75,
+        "cddianjia":  0.25,
         "jsydifei":   125.0,   # 25万/亩×5亩
         "rjngongzi":   8.0,
     },
@@ -1846,158 +1846,157 @@ with tab1:
             st.plotly_chart(fig2, use_container_width=True, key="chenbengouchen")
 
 with tab2:
-    # 在 tab 里
-    gap_x    = list(np.linspace(0.1, 1.5, 20).round(3))
+    # 放电电价：0.6~1.3 元/kWh（覆盖全国主要省份范围）
+    fd_x     = list(np.linspace(0.6,  1.3,  20).round(3))
+    # 充电电价：0.2~0.5 元/kWh
+    cd_x     = list(np.linspace(0.2,  0.5,  20).round(3))
+    # PCS单价：0.27~0.33 元/W
+    pcs_x    = list(np.linspace(0.27, 0.33, 10).round(3))
     tax_x    = list(np.linspace(15, 25, 20).round(1))
     exempt_x = list(range(0, 6))
-    loan_x = list(np.linspace(1, 10, 10).round(1))
+    loan_x   = list(np.linspace(1, 10, 10).round(1))
 
-    s1, irr1, hsq1 = calc_sensitivity(params, None,           gap_x,    is_price_gap=True)
-    s2, irr2, hsq2 = calc_sensitivity(params, "sdshuilv",     tax_x)
-    s3, irr3, hsq3 = calc_sensitivity(params, "sdsjmnianxian", exempt_x)
-    s4, irr4, hsq4 = calc_sensitivity(params, "dklilv", loan_x)
+    s_fd,  irr_fd,  hsq_fd  = calc_sensitivity(params, "fddianjia",    fd_x)
+    s_cd,  irr_cd,  hsq_cd  = calc_sensitivity(params, "cddianjia",    cd_x)
+    s_pcs, irr_pcs, hsq_pcs = calc_sensitivity(params, "pcsdanjia",    pcs_x)
+    s2, irr2, hsq2 = calc_sensitivity(params, "sdshuilv",              tax_x)
+    s3, irr3, hsq3 = calc_sensitivity(params, "sdsjmnianxian",         exempt_x)
+    s4, irr4, hsq4 = calc_sensitivity(params, "dklilv",                loan_x)
 
-    fig_gap    = make_sensitivity_fig(gap_x,    "峰谷电价差 (元/kWh)", s1, irr1, hsq1)
+    fig_fd  = make_sensitivity_fig(fd_x,  "放电电价 (元/kWh)", s_fd,  irr_fd,  hsq_fd)
+    fig_cd  = make_sensitivity_fig(cd_x,  "充电电价 (元/kWh)", s_cd,  irr_cd,  hsq_cd)
+    fig_pcs = make_sensitivity_fig(pcs_x, "PCS单价 (元/W)",    s_pcs, irr_pcs, hsq_pcs)
     fig_tax    = make_sensitivity_fig(tax_x,    "所得税率 (%)",         s2, irr2, hsq2)
     fig_exempt = make_sensitivity_fig(exempt_x, "所得税减免年数 (年)",  s3, irr3, hsq3)
-    fig_loan = make_sensitivity_fig(loan_x, "贷款利率(%)",  s4, irr4, hsq4)
+    fig_loan   = make_sensitivity_fig(loan_x,   "贷款利率(%)",          s4, irr4, hsq4)
 
     # ── 敏感性数据表格 ────────────────────────────────────────
-    df_gap = pd.DataFrame({
-        "峰谷电价差 (元/kWh)": gap_x,
-        "成本性 S":            s1,
-        "盈利性 IRR":          irr1,
-        "回收性":              hsq1,
+    df_fd = pd.DataFrame({
+        "放电电价 (元/kWh)": fd_x,
+        "成本性 S": s_fd, "盈利性 IRR": irr_fd, "回收性": hsq_fd,
+    })
+    df_cd = pd.DataFrame({
+        "充电电价 (元/kWh)": cd_x,
+        "成本性 S": s_cd, "盈利性 IRR": irr_cd, "回收性": hsq_cd,
+    })
+    df_pcs = pd.DataFrame({
+        "PCS单价 (元/W)": pcs_x,
+        "成本性 S": s_pcs, "盈利性 IRR": irr_pcs, "回收性": hsq_pcs,
     })
     df_tax = pd.DataFrame({
         "所得税率 (%)":  tax_x,
-        "成本性 S":      s2,
-        "盈利性 IRR":    irr2,
-        "回收性":        hsq2,
+        "成本性 S":      s2, "盈利性 IRR": irr2, "回收性": hsq2,
     })
     df_exempt = pd.DataFrame({
         "所得税减免年数 (年)": exempt_x,
-        "成本性 S":            s3,
-        "盈利性 IRR":          irr3,
-        "回收性":              hsq3,
+        "成本性 S": s3, "盈利性 IRR": irr3, "回收性": hsq3,
     })
     df_loan = pd.DataFrame({
         "贷款利率 %": loan_x,
-        "成本性 S":            s4,
-        "盈利性 IRR":          irr4,
-        "回收性":              hsq4,
+        "成本性 S": s4, "盈利性 IRR": irr4, "回收性": hsq4,
     })
 
-    c1, c2 = st.columns(2)
+    # ── 第一行：放电电价、充电电价、PCS单价 ──────────────────
+    c1, c2, c3 = st.columns(3)
     with c1:
-        st.caption("峰谷价差敏感性")
-        st.plotly_chart(fig_gap,    use_container_width=True, key="sens_gap")
+        st.caption("放电电价敏感性")
+        st.plotly_chart(fig_fd,  use_container_width=True, key="sens_fd")
     with c2:
-        st.caption("所得税率敏感性")
-        st.plotly_chart(fig_tax,    use_container_width=True, key="sens_tax")
-
-    t1, t2= st.columns(2)
-    with t1:
-        st.caption("峰谷价差敏感性数据")
-        st.dataframe(df_gap, use_container_width=True, hide_index=True)
-        st.download_button(
-            label="下载 CSV",
-            data=df_gap.to_csv(index=False, encoding="utf-8-sig"),
-            file_name="sensitivity_gap.csv",
-            mime="text/csv",
-            key="dl_gap"
-        )
-    with t2:
-        st.caption("所得税率敏感性数据")
-        st.dataframe(df_tax, use_container_width=True, hide_index=True)
-        st.download_button(
-            label="下载 CSV",
-            data=df_tax.to_csv(index=False, encoding="utf-8-sig"),
-            file_name="sensitivity_tax.csv",
-            mime="text/csv",
-            key="dl_tax"
-        )
-
-    c3, c4 = st.columns(2)
+        st.caption("充电电价敏感性")
+        st.plotly_chart(fig_cd,  use_container_width=True, key="sens_cd")
     with c3:
-        st.caption("减免年数敏感性")
-        st.plotly_chart(fig_exempt, use_container_width=True, key="sens_exempt")
-    with c4:
-        st.caption("贷款利率敏感性")
-        st.plotly_chart(fig_loan, use_container_width=True, key="sens_loan")
+        st.caption("PCS单价敏感性")
+        st.plotly_chart(fig_pcs, use_container_width=True, key="sens_pcs")
+
+    t1, t2, t3 = st.columns(3)
+    with t1:
+        st.caption("放电电价敏感性数据")
+        st.dataframe(df_fd, use_container_width=True, hide_index=True)
+        st.download_button("下载 CSV", df_fd.to_csv(index=False, encoding="utf-8-sig"),
+                           "sensitivity_fd.csv", "text/csv", key="dl_fd")
+    with t2:
+        st.caption("充电电价敏感性数据")
+        st.dataframe(df_cd, use_container_width=True, hide_index=True)
+        st.download_button("下载 CSV", df_cd.to_csv(index=False, encoding="utf-8-sig"),
+                           "sensitivity_cd.csv", "text/csv", key="dl_cd")
+    with t3:
+        st.caption("PCS单价敏感性数据")
+        st.dataframe(df_pcs, use_container_width=True, hide_index=True)
+        st.download_button("下载 CSV", df_pcs.to_csv(index=False, encoding="utf-8-sig"),
+                           "sensitivity_pcs.csv", "text/csv", key="dl_pcs")
+
     st.divider()
 
-    t3, t4= st.columns(2)
-    with t3:
-        st.caption("减免年数敏感性数据")
-        st.dataframe(df_exempt, use_container_width=True, hide_index=True)
-        st.download_button(
-            label="下载 CSV",
-            data=df_exempt.to_csv(index=False, encoding="utf-8-sig"),
-            file_name="sensitivity_exempt.csv",
-            mime="text/csv",
-            key="dl_exempt"
-        )
-    with t4:
+    # ── 第二行：所得税率、贷款利率 ───────────────────────────
+    c1, c2 = st.columns(2)
+    with c1:
+        st.caption("所得税率敏感性")
+        st.plotly_chart(fig_tax,    use_container_width=True, key="sens_tax")
+    with c2:
+        st.caption("贷款利率敏感性")
+        st.plotly_chart(fig_loan,   use_container_width=True, key="sens_loan")
+
+    ta, tb = st.columns(2)
+    with ta:
+        st.caption("所得税率敏感性数据")
+        st.dataframe(df_tax, use_container_width=True, hide_index=True)
+        st.download_button("下载 CSV", df_tax.to_csv(index=False, encoding="utf-8-sig"),
+                           "sensitivity_tax.csv", "text/csv", key="dl_tax")
+    with tb:
         st.caption("贷款利率敏感性数据")
         st.dataframe(df_loan, use_container_width=True, hide_index=True)
-        st.download_button(
-            label="下载 CSV",
-            data=df_loan.to_csv(index=False, encoding="utf-8-sig"),
-            file_name="sensitivity_loan.csv",
-            mime="text/csv",
-            key="dl_loan"
-        )
+        st.download_button("下载 CSV", df_loan.to_csv(index=False, encoding="utf-8-sig"),
+                           "sensitivity_loan.csv", "text/csv", key="dl_loan")
 
-    # ── 折现率 & 电池单价敏感性 ───────────────────────────────
-    discount_x = list(np.linspace(0, 15, 16).round(1))   # 折现率 10%~15%，原始整数百分比
-    battery_x  = list(np.linspace(0.60, 0.80, 21).round(3))  # 电池单价 0.60~0.80 元/Wh
+    st.divider()
 
-    s5, irr5, hsq5 = calc_sensitivity(params, "zxlv",      tuple(discount_x))
-    s6, irr6, hsq6 = calc_sensitivity(params, "dcxtdanjia", tuple(battery_x))
+    # ── 第三行：所得税减免、折现率、电池单价 ─────────────────
+    c1, c2, c3 = st.columns(3)
+    with c1:
+        st.caption("减免年数敏感性")
+        st.plotly_chart(fig_exempt, use_container_width=True, key="sens_exempt")
 
-    fig_discount = make_sensitivity_fig(discount_x, "折现率 (%)",          s5, irr5, hsq5)
+    discount_x = list(np.linspace(0, 15, 80).round(1))
+    battery_x  = list(np.linspace(0.60, 0.80, 21).round(3))
+    s5, irr5, hsq5 = calc_sensitivity(params, "zxlv",       discount_x)
+    s6, irr6, hsq6 = calc_sensitivity(params, "dcxtdanjia", battery_x)
+    fig_discount = make_sensitivity_fig(discount_x, "折现率 (%)",           s5, irr5, hsq5)
     fig_battery  = make_sensitivity_fig(battery_x,  "电池系统单价 (元/Wh)", s6, irr6, hsq6)
 
-    c5, c6 = st.columns(2)
-    with c5:
+    with c2:
         st.caption("折现率敏感性")
         st.plotly_chart(fig_discount, use_container_width=True, key="sens_discount")
-    with c6:
+    with c3:
         st.caption("电池系统单价敏感性")
         st.plotly_chart(fig_battery,  use_container_width=True, key="sens_battery")
 
+    df_exempt = pd.DataFrame({
+        "所得税减免年数 (年)": exempt_x,
+        "成本性 S": s3, "盈利性 IRR": irr3, "回收性": hsq3,
+    })
     df_discount = pd.DataFrame({
-        "折现率 (%)":   discount_x,
-        "成本性 S":     s5,
-        "盈利性 IRR":   irr5,
-        "回收性":       hsq5,
+        "折现率 (%)": discount_x,
+        "成本性 S": s5, "盈利性 IRR": irr5, "回收性": hsq5,
     })
     df_battery = pd.DataFrame({
         "电池系统单价 (元/Wh)": battery_x,
-        "成本性 S":             s6,
-        "盈利性 IRR":           irr6,
-        "回收性":               hsq6,
+        "成本性 S": s6, "盈利性 IRR": irr6, "回收性": hsq6,
     })
 
-    t5, t6 = st.columns(2)
+    t4, t5, t6 = st.columns(3)
+    with t4:
+        st.caption("减免年数敏感性数据")
+        st.dataframe(df_exempt, use_container_width=True, hide_index=True)
+        st.download_button("下载 CSV", df_exempt.to_csv(index=False, encoding="utf-8-sig"),
+                           "sensitivity_exempt.csv", "text/csv", key="dl_exempt2")
     with t5:
         st.caption("折现率敏感性数据")
         st.dataframe(df_discount, use_container_width=True, hide_index=True)
-        st.download_button(
-            label="下载 CSV",
-            data=df_discount.to_csv(index=False, encoding="utf-8-sig"),
-            file_name="sensitivity_discount.csv",
-            mime="text/csv",
-            key="dl_discount"
-        )
+        st.download_button("下载 CSV", df_discount.to_csv(index=False, encoding="utf-8-sig"),
+                           "sensitivity_discount.csv", "text/csv", key="dl_discount2")
     with t6:
         st.caption("电池系统单价敏感性数据")
         st.dataframe(df_battery, use_container_width=True, hide_index=True)
-        st.download_button(
-            label="下载 CSV",
-            data=df_battery.to_csv(index=False, encoding="utf-8-sig"),
-            file_name="sensitivity_battery.csv",
-            mime="text/csv",
-            key="dl_battery"
-        )
+        st.download_button("下载 CSV", df_battery.to_csv(index=False, encoding="utf-8-sig"),
+                           "sensitivity_battery.csv", "text/csv", key="dl_battery2")
+
