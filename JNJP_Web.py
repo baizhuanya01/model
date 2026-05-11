@@ -292,6 +292,16 @@ canshu = {
             "default": 0.0,
             "step": 10.0,
             "help": "政府或电网的年度补贴"
+        },
+        "折现率 (%)": {
+            "type": "slider",
+            "var": "zxlv",
+            "min": 1,
+            "max": 15,
+            "default": 8,
+            "step": 1,
+            "help": "基准收益率，用于NPV、动态回收期、LCOE折现计算",
+            "convert": lambda x: x / 100
         }
     },
     
@@ -450,8 +460,8 @@ canshu = {
         "贷款利率 (%)": {
             "type": "slider",
             "var": "dklilv",
-            "min": 3.0,
-            "max": 8.0,
+            "min": 0.1,
+            "max": 10.0,
             "default": 5,
             "step": 0.1,
             "help": "年贷款利率",
@@ -1148,7 +1158,7 @@ for cf in xjliu:
 
 # ── 10. 财务指标 ──────────────────────────────────────────────
 
-zxlv = 0.08   # 折现率 8%
+zxlv = calc_params.get("zxlv", 0.08)   # 折现率，从参数读取，默认8%
 
 # NPV（净现值）
 npv = ljxjliu[0]
@@ -1253,15 +1263,15 @@ def calc_irr_score(irr):
     return score
 
 @clamp_score
-def calc_hsq_score(jthshouqi):
+def calc_hsq_score(dthshouqi):
     """
-    回收性得分（静态回收期）
-    输入：回收期年数，None（20年内未回收）返回 0
-    规则：10年→60分，4年→100分，线性插值；超过10年返回0
+    回收性得分（动态回收期，考虑折现率）
+    输入：动态回收期年数，None（20年内未回收）返回 0
+    规则：10年→60分，4年→100分，线性插值
     """
-    if jthshouqi is None:
+    if dthshouqi is None:
         return 0.0
-    score = 60 + (10 - jthshouqi) / (10 - 4) * 40
+    score = 60 + (10 - dthshouqi) / (10 - 4) * 40
     return score
 
 
@@ -1270,23 +1280,19 @@ def calc_hsq_score(jthshouqi):
 # 固定其他参数，遍历目标参数范围，计算三个得分的变化
 # ══════════════════════════════════════════════════════════════
 
-@st.cache_data
-def calc_sensitivity(base_params_tuple, vary_var, x_values, is_price_gap=False):
+def calc_sensitivity(base_params, vary_var, x_values, is_price_gap=False):
     """
     敏感性分析：固定其他参数，改变目标参数，返回三个得分列表
     
     参数：
-        base_params_tuple : 参数字典转成的 tuple，如 tuple(sorted(params.items()))
-                            用 tuple 是因为 st.cache_data 要求参数可哈希
-        vary_var          : 要变化的参数 var 名，如 "sdshuilv"
-        x_values          : 横轴数值 tuple
-        is_price_gap      : True 时表示变化峰谷价差
+        base_params  : 当前参数字典（原始值）
+        vary_var     : 要变化的参数 var 名，如 "sdshuilv"
+        x_values     : 横轴数值列表或 tuple
+        is_price_gap : True 时表示变化峰谷价差
     
     返回：
         (s_list, irr_list, hsq_list) 三个得分列表
     """
-    # 还原字典
-    base_params = dict(base_params_tuple)
     s_list, irr_list, hsq_list = [], [], []
 
     for x in x_values:
@@ -1302,7 +1308,7 @@ def calc_sensitivity(base_params_tuple, vary_var, x_values, is_price_gap=False):
         s   = calc_s_score(m["静态投资(万元)"], m["LCOE(元/kWh)"])
         irr_val = m["IRR(%)"] / 100 if m["IRR(%)"] is not None else None
         irr = calc_irr_score(irr_val)
-        hsq = calc_hsq_score(m["静态回收期(年)"])
+        hsq = calc_hsq_score(m["动态回收期(年)"])
 
         s_list.append(round(s, 2))
         irr_list.append(round(irr, 2))
@@ -1692,7 +1698,7 @@ def calc_metrics(p):
     for cf in _xjliu:
         _ljxjliu.append(_ljxjliu[-1] + cf)
 
-    _zxlv = 0.08
+    _zxlv = p.get("zxlv", 0.08)   # 折现率，从参数读取，默认8%
     _npv = _ljxjliu[0]
     for i, cf in enumerate(_xjliu):
         _npv += cf / (1 + _zxlv) ** (i + 1)
@@ -1717,6 +1723,14 @@ def calc_metrics(p):
     for i, v in enumerate(_ljxjliu[1:], 1):
         if v >= 0: _jthshouqi = i; break
 
+    # 动态回收期（折现后累计现金流转正的年份）
+    _dt_xjliu = [_ljxjliu[0]]
+    for i, cf in enumerate(_xjliu):
+        _dt_xjliu.append(_dt_xjliu[-1] + cf / (1 + _zxlv) ** (i + 1))
+    _dthshouqi = None
+    for i, v in enumerate(_dt_xjliu[1:], 1):
+        if v >= 0: _dthshouqi = i; break
+
     _lcoe_fenzi = sum(_zchenben[i] / (1 + _zxlv) ** (i + 1) for i in range(20))
     _lcoe_fenmu = sum(_fddianliang[i] * 1000 / (1 + _zxlv) ** (i + 1) for i in range(20))
     _lcoe = _lcoe_fenzi * 1e4 / _lcoe_fenmu if _lcoe_fenmu > 0 else 0
@@ -1733,6 +1747,7 @@ def calc_metrics(p):
         "NPV(万元)": _npv,
         "IRR(%)": _irr * 100 if _irr else None,
         "静态回收期(年)": _jthshouqi,
+        "动态回收期(年)": _dthshouqi,
         "LCOE(元/kWh)": _lcoe,
         "ROI(%)": _ztzsyilv * 100,
         "ROE(%)": _zbjjlrunlv * 100,
@@ -1781,7 +1796,7 @@ with tab1:
     m1.metric("静态投资", f"{jttouzi:.0f} 万元")
     y1.metric("自有资金", f"{zyzijin:.0f} 万元")
     with e1:
-        render_hsq_liquid(jthshouqi)
+        render_hsq_liquid(dthshouqi)
 
     # 第二排：核心收益指标
     st.subheader("核心收益及irr评分")
@@ -1790,8 +1805,8 @@ with tab1:
               delta="项目可行 ✓" if npv > 0 else "-项目不可行 ✗")
     m2.metric("IRR（内部收益率）", f"{irr*100:.2f}%" if irr else "N/A",
               delta="高于基准 ✓" if irr and irr > 0.08 else "-低于基准 ✗")
-    y2.metric("静态回收期", f"{jthshouqi} 年" if jthshouqi else ">20年",
-              delta="回收较快 ✓" if jthshouqi and jthshouqi <= 10 else "-回收较慢 ✗")
+    y2.metric("动态回收期", f"{dthshouqi} 年" if dthshouqi else ">20年",
+              delta="回收较快 ✓" if dthshouqi and dthshouqi <= 10 else "-回收较慢 ✗")
     with e2:
         render_irr_liquid(irr)
               
@@ -1835,26 +1850,17 @@ with tab2:
     gap_x    = list(np.linspace(0.1, 1.5, 20).round(3))
     tax_x    = list(np.linspace(15, 25, 20).round(1))
     exempt_x = list(range(0, 6))
+    loan_x = list(np.linspace(1, 10, 10).round(1))
 
     s1, irr1, hsq1 = calc_sensitivity(params, None,           gap_x,    is_price_gap=True)
     s2, irr2, hsq2 = calc_sensitivity(params, "sdshuilv",     tax_x)
     s3, irr3, hsq3 = calc_sensitivity(params, "sdsjmnianxian", exempt_x)
+    s4, irr4, hsq4 = calc_sensitivity(params, "dklilv", loan_x)
 
     fig_gap    = make_sensitivity_fig(gap_x,    "峰谷电价差 (元/kWh)", s1, irr1, hsq1)
     fig_tax    = make_sensitivity_fig(tax_x,    "所得税率 (%)",         s2, irr2, hsq2)
     fig_exempt = make_sensitivity_fig(exempt_x, "所得税减免年数 (年)",  s3, irr3, hsq3)
-    c1, c2, c3 = st.columns(3)
-    with c1:
-        st.caption("峰谷价差敏感性")
-        st.plotly_chart(fig_gap,    use_container_width=True, key="sens_gap")
-    with c2:
-        st.caption("所得税率敏感性")
-        st.plotly_chart(fig_tax,    use_container_width=True, key="sens_tax")
-    with c3:
-        st.caption("减免年数敏感性")
-        st.plotly_chart(fig_exempt, use_container_width=True, key="sens_exempt")
-
-    st.divider()
+    fig_loan = make_sensitivity_fig(loan_x, "贷款利率(%)",  s4, irr4, hsq4)
 
     # ── 敏感性数据表格 ────────────────────────────────────────
     df_gap = pd.DataFrame({
@@ -1875,8 +1881,22 @@ with tab2:
         "盈利性 IRR":          irr3,
         "回收性":              hsq3,
     })
+    df_loan = pd.DataFrame({
+        "贷款利率 %": loan_x,
+        "成本性 S":            s4,
+        "盈利性 IRR":          irr4,
+        "回收性":              hsq4,
+    })
 
-    t1, t2, t3 = st.columns(3)
+    c1, c2 = st.columns(2)
+    with c1:
+        st.caption("峰谷价差敏感性")
+        st.plotly_chart(fig_gap,    use_container_width=True, key="sens_gap")
+    with c2:
+        st.caption("所得税率敏感性")
+        st.plotly_chart(fig_tax,    use_container_width=True, key="sens_tax")
+
+    t1, t2= st.columns(2)
     with t1:
         st.caption("峰谷价差敏感性数据")
         st.dataframe(df_gap, use_container_width=True, hide_index=True)
@@ -1897,6 +1917,17 @@ with tab2:
             mime="text/csv",
             key="dl_tax"
         )
+
+    c3, c4 = st.columns(2)
+    with c3:
+        st.caption("减免年数敏感性")
+        st.plotly_chart(fig_exempt, use_container_width=True, key="sens_exempt")
+    with c4:
+        st.caption("贷款利率敏感性")
+        st.plotly_chart(fig_loan, use_container_width=True, key="sens_loan")
+    st.divider()
+
+    t3, t4= st.columns(2)
     with t3:
         st.caption("减免年数敏感性数据")
         st.dataframe(df_exempt, use_container_width=True, hide_index=True)
@@ -1906,4 +1937,67 @@ with tab2:
             file_name="sensitivity_exempt.csv",
             mime="text/csv",
             key="dl_exempt"
+        )
+    with t4:
+        st.caption("贷款利率敏感性数据")
+        st.dataframe(df_loan, use_container_width=True, hide_index=True)
+        st.download_button(
+            label="下载 CSV",
+            data=df_loan.to_csv(index=False, encoding="utf-8-sig"),
+            file_name="sensitivity_loan.csv",
+            mime="text/csv",
+            key="dl_loan"
+        )
+
+    # ── 折现率 & 电池单价敏感性 ───────────────────────────────
+    discount_x = list(np.linspace(0, 15, 16).round(1))   # 折现率 10%~15%，原始整数百分比
+    battery_x  = list(np.linspace(0.60, 0.80, 21).round(3))  # 电池单价 0.60~0.80 元/Wh
+
+    s5, irr5, hsq5 = calc_sensitivity(params, "zxlv",      tuple(discount_x))
+    s6, irr6, hsq6 = calc_sensitivity(params, "dcxtdanjia", tuple(battery_x))
+
+    fig_discount = make_sensitivity_fig(discount_x, "折现率 (%)",          s5, irr5, hsq5)
+    fig_battery  = make_sensitivity_fig(battery_x,  "电池系统单价 (元/Wh)", s6, irr6, hsq6)
+
+    c5, c6 = st.columns(2)
+    with c5:
+        st.caption("折现率敏感性")
+        st.plotly_chart(fig_discount, use_container_width=True, key="sens_discount")
+    with c6:
+        st.caption("电池系统单价敏感性")
+        st.plotly_chart(fig_battery,  use_container_width=True, key="sens_battery")
+
+    df_discount = pd.DataFrame({
+        "折现率 (%)":   discount_x,
+        "成本性 S":     s5,
+        "盈利性 IRR":   irr5,
+        "回收性":       hsq5,
+    })
+    df_battery = pd.DataFrame({
+        "电池系统单价 (元/Wh)": battery_x,
+        "成本性 S":             s6,
+        "盈利性 IRR":           irr6,
+        "回收性":               hsq6,
+    })
+
+    t5, t6 = st.columns(2)
+    with t5:
+        st.caption("折现率敏感性数据")
+        st.dataframe(df_discount, use_container_width=True, hide_index=True)
+        st.download_button(
+            label="下载 CSV",
+            data=df_discount.to_csv(index=False, encoding="utf-8-sig"),
+            file_name="sensitivity_discount.csv",
+            mime="text/csv",
+            key="dl_discount"
+        )
+    with t6:
+        st.caption("电池系统单价敏感性数据")
+        st.dataframe(df_battery, use_container_width=True, hide_index=True)
+        st.download_button(
+            label="下载 CSV",
+            data=df_battery.to_csv(index=False, encoding="utf-8-sig"),
+            file_name="sensitivity_battery.csv",
+            mime="text/csv",
+            key="dl_battery"
         )
