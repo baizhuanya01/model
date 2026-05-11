@@ -1489,34 +1489,34 @@ def render_irr_liquid(irr, key="irr_liquid"):
     score = 60 + (irr - 0.065) / (0.20 - 0.065) * 40
     score = min(100, score)
     level = score / 100
-    label = f"{irr*100:.1f}%"
+    label = f"{score:.1f} 分"
     colors = ["#3498db", "#5dade2", "#85c1e9"]
     make_liquid_option(level, colors, label, key, title="盈利性评分")
 
 
-def render_hsq_liquid(jthshouqi, key="hsq_liquid"):
+def render_hsq_liquid(dthshouqi, key="hsq_liquid"):
     """
-    动态回收期水波图
+    回收性评分水波图（动态回收期）
     
     评分规则（线性插值，注意：回收期越短越好，水位反向）：
-        回收期 > 10年 → 不合格，水位 = 0，显示"不合格"
-        回收期 = 10年 → 60分，水位 = 0.60
-        回收期 = 4年  → 100分，水位 = 1.00
+        动态回收期 > 10年 → 不合格，水位 = 0，显示"不合格"
+        动态回收期 = 10年 → 60分，水位 = 0.60
+        动态回收期 = 4年  → 100分，水位 = 1.00
         中间线性插值：score = 60 + (10 - hsq) / (10 - 4) × 40
     
     颜色：橙色系
     
     参数：
-        jthshouqi : 静态回收期（年），None 表示 20 年内未回收
+        dthshouqi : 动态回收期（年），None 表示 20 年内未回收
         key       : echarts 唯一 key
     """
-    if jthshouqi is None or jthshouqi < 0:
+    if dthshouqi is None or dthshouqi < 0:
         make_liquid_option(0.0, ["#e74c3c", "#ec7063", "#f1948a"], "不合格", key, title="回收性评分")
         return
-    score = 60 + (10 - jthshouqi) / (10 - 4) * 40
+    score = 60 + (10 - dthshouqi) / (10 - 4) * 40
     score = min(100, score)
     level = score / 100
-    label = f"{jthshouqi} 年"
+    label = f"{score:.1f} 分"
     colors = ["#e67e22", "#f0a500", "#f7c948"]
     make_liquid_option(level, colors, label, key, title="回收性评分")
 
@@ -2042,6 +2042,12 @@ with tab3:
     irr_data = [[province_name_map.get(p, p), v[1]] for p, v in province_scores.items()]
     hsq_data = [[province_name_map.get(p, p), v[2]] for p, v in province_scores.items()]
 
+    # 港澳台无数据，传 -1 让 pyecharts 用特殊颜色显示（灰色）
+    for name in ["香港特别行政区", "澳门特别行政区", "台湾省"]:
+        s_data.append([name, -1])
+        irr_data.append([name, -1])
+        hsq_data.append([name, -1])
+
     def make_china_map(data, title, color_range=(0, 100)):
         """
         生成中国省级热力图
@@ -2065,8 +2071,11 @@ with tab3:
                 series_name=title,
                 data_pair=data,
                 maptype="china",
-                is_roam=False,           # 禁止缩放拖拽
-                label_opts=opts.LabelOpts(is_show=False),  # 不显示省份名
+                is_roam=False,
+                label_opts=opts.LabelOpts(is_show=False),
+                itemstyle_opts=opts.ItemStyleOpts(
+                    color="#e0e0e0"   # 无数据省份显示灰色
+                ),
             )
             .set_global_opts(
                 title_opts=opts.TitleOpts(
