@@ -2,6 +2,10 @@ import streamlit as st
 import pandas as pd
 import plotly.graph_objects as go
 import numpy as np
+import streamlit.components.v1 as components
+from pyecharts import options as opts
+from pyecharts.charts import Map
+from pyecharts.globals import ThemeType
 
 st.set_page_config(layout="wide")
 
@@ -1753,7 +1757,7 @@ def calc_metrics(p):
         "ROE(%)": _zbjjlrunlv * 100,
     }
 
-tab1,tab2,tab3,tab4,tab5 = st.tabs(["主展板","敏感性分析","web3","web4","web5"])
+tab1,tab2,tab3,tab4,tab5 = st.tabs(["主展板","敏感性分析","全国热力图","！大的要来了 ！","web5"])
 
 if "saved_scenarios" not in st.session_state:
     st.session_state.saved_scenarios = {}
@@ -2000,3 +2004,124 @@ with tab2:
         st.download_button("下载 CSV", df_battery.to_csv(index=False, encoding="utf-8-sig"),
                            "sensitivity_battery.csv", "text/csv", key="dl_battery2")
 
+
+with tab3:
+    # ── 计算每个省份的三种得分 ────────────────────────────────
+    # 遍历 FA_diqv，用每个省份的预设参数替换当前参数，跑一次 calc_metrics
+    province_scores = {}   # {省份名: (s, irr_score, hsq_score)}
+
+    for province, preset in FA_diqv.items():
+        if not preset:   # 跳过"自定义"（空字典）
+            continue
+        # 用省份预设覆盖当前参数
+        p = params.copy()
+        p.update(preset)
+        m = calc_metrics(p)
+
+        s     = calc_s_score(m["静态投资(万元)"], m["LCOE(元/kWh)"])
+        irr_v = m["IRR(%)"] / 100 if m["IRR(%)"] is not None else None
+        irr_s = calc_irr_score(irr_v)
+        hsq_s = calc_hsq_score(m["动态回收期(年)"])
+
+        province_scores[province] = (round(s, 1), round(irr_s, 1), round(hsq_s, 1))
+
+    # pyecharts 省份名映射（需要全称才能匹配地图）
+    province_name_map = {
+        "上海": "上海市", "北京": "北京市", "天津": "天津市", "重庆": "重庆市",
+        "广东": "广东省", "浙江": "浙江省", "江苏": "江苏省", "安徽": "安徽省",
+        "福建": "福建省", "江西": "江西省", "山东": "山东省", "河北": "河北省",
+        "山西": "山西省", "内蒙古": "内蒙古自治区", "海南": "海南省", "广西": "广西壮族自治区",
+        "湖南": "湖南省", "河南": "河南省", "湖北": "湖北省", "四川": "四川省",
+        "贵州": "贵州省", "云南": "云南省", "陕西": "陕西省", "甘肃": "甘肃省",
+        "新疆": "新疆维吾尔自治区", "青海": "青海省", "宁夏": "宁夏回族自治区",
+        "辽宁": "辽宁省", "吉林": "吉林省", "黑龙江": "黑龙江省",
+    }
+
+    # ── 构造三组数据 ──────────────────────────────────────────
+    s_data   = [[province_name_map.get(p, p), v[0]] for p, v in province_scores.items()]
+    irr_data = [[province_name_map.get(p, p), v[1]] for p, v in province_scores.items()]
+    hsq_data = [[province_name_map.get(p, p), v[2]] for p, v in province_scores.items()]
+
+    def make_china_map(data, title, color_range=(0, 100)):
+        """
+        生成中国省级热力图
+        
+        参数：
+            data        : [[省份名, 得分], ...] 列表
+            title       : 图表标题
+            color_range : 颜色范围 (min, max)
+        
+        返回：
+            pyecharts Map 对象的 HTML 字符串
+        """
+        c = (
+            Map(init_opts=opts.InitOpts(
+                width="100%",
+                height="420px",
+                theme=ThemeType.WHITE,
+                bg_color="#fafafa"
+            ))
+            .add(
+                series_name=title,
+                data_pair=data,
+                maptype="china",
+                is_roam=False,           # 禁止缩放拖拽
+                label_opts=opts.LabelOpts(is_show=False),  # 不显示省份名
+            )
+            .set_global_opts(
+                title_opts=opts.TitleOpts(
+                    title=title,
+                    pos_left="center",
+                    title_textstyle_opts=opts.TextStyleOpts(font_size=14)
+                ),
+                visualmap_opts=opts.VisualMapOpts(
+                    min_=color_range[0],
+                    max_=color_range[1],
+                    range_color=["#d0e8ff", "#1a6fc4"],  # 浅蓝→深蓝
+                    pos_left="5%",
+                    pos_bottom="5%",
+                    textstyle_opts=opts.TextStyleOpts(font_size=11),
+                    is_piecewise=False,
+                ),
+                tooltip_opts=opts.TooltipOpts(
+                    trigger="item",
+                    formatter="{b}: {c} 分"
+                ),
+            )
+        )
+        return c.render_embed()   # 返回 HTML 字符串
+
+    # ── 渲染三张并排热力图 ────────────────────────────────────
+    m1, m2, m3 = st.columns(3)
+
+    with m1:
+        st.caption("💰 成本性评分 S")
+        html_s = make_china_map(s_data, "成本性评分 S")
+        components.html(html_s, height=440, scrolling=False)
+
+    with m2:
+        st.caption("📈 盈利性评分 IRR")
+        html_irr = make_china_map(irr_data, "盈利性评分 IRR")
+        components.html(html_irr, height=440, scrolling=False)
+
+    with m3:
+        st.caption("⏱ 回收性评分")
+        html_hsq = make_china_map(hsq_data, "回收性评分")
+        components.html(html_hsq, height=440, scrolling=False)
+
+    # ── 数据表格 ──────────────────────────────────────────────
+    st.divider()
+    df_map = pd.DataFrame(
+        [(p, v[0], v[1], v[2]) for p, v in province_scores.items()],
+        columns=["省份", "成本性 S", "盈利性 IRR", "回收性"]
+    ).sort_values("成本性 S", ascending=False).reset_index(drop=True)
+
+    st.caption("各省份得分汇总")
+    st.dataframe(df_map, use_container_width=True, hide_index=True)
+    st.download_button(
+        label="下载全国得分 CSV",
+        data=df_map.to_csv(index=False, encoding="utf-8-sig"),
+        file_name="china_scores.csv",
+        mime="text/csv",
+        key="dl_china"
+    )
