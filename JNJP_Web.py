@@ -2043,7 +2043,7 @@ with tab3:
     hsq_data = [[province_name_map.get(p, p), v[2]] for p, v in province_scores.items()]
 
     # 港澳台无数据，传 -1 让 pyecharts 用特殊颜色显示（灰色）
-    for name in ["香港特别行政区", "澳门特别行政区", "台湾省"]:
+    for name in ["香港特别行政区", "澳门特别行政区", "台湾省","西藏自治区"]:
         s_data.append([name, -1])
         irr_data.append([name, -1])
         hsq_data.append([name, -1])
