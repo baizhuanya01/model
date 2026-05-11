@@ -1270,35 +1270,35 @@ def calc_hsq_score(jthshouqi):
 # 固定其他参数，遍历目标参数范围，计算三个得分的变化
 # ══════════════════════════════════════════════════════════════
 
-def calc_sensitivity(base_params, vary_var, x_values, is_price_gap=False):
+@st.cache_data
+def calc_sensitivity(base_params_tuple, vary_var, x_values, is_price_gap=False):
     """
     敏感性分析：固定其他参数，改变目标参数，返回三个得分列表
     
     参数：
-        base_params   : 当前参数字典（原始值）
-        vary_var      : 要变化的参数 var 名，如 "sdshuilv"
-                        is_price_gap=True 时此参数忽略
-        x_values      : 横轴数值列表
-        is_price_gap  : True 时表示变化峰谷价差
-                        逻辑：固定充电电价，放电电价 = 充电电价 + 价差
+        base_params_tuple : 参数字典转成的 tuple，如 tuple(sorted(params.items()))
+                            用 tuple 是因为 st.cache_data 要求参数可哈希
+        vary_var          : 要变化的参数 var 名，如 "sdshuilv"
+        x_values          : 横轴数值 tuple
+        is_price_gap      : True 时表示变化峰谷价差
     
     返回：
-        (s_list, irr_list, hsq_list) 三个得分列表，与 x_values 等长
+        (s_list, irr_list, hsq_list) 三个得分列表
     """
+    # 还原字典
+    base_params = dict(base_params_tuple)
     s_list, irr_list, hsq_list = [], [], []
 
     for x in x_values:
         p = base_params.copy()
 
         if is_price_gap:
-            # 峰谷价差：放电电价 = 充电电价 + 价差
             p["fddianjia"] = base_params["cddianjia"] + x
         else:
             p[vary_var] = x
 
         m = calc_metrics(p)
 
-        # 从 calc_metrics 返回值提取得分
         s   = calc_s_score(m["静态投资(万元)"], m["LCOE(元/kWh)"])
         irr_val = m["IRR(%)"] / 100 if m["IRR(%)"] is not None else None
         irr = calc_irr_score(irr_val)
@@ -1454,7 +1454,7 @@ def render_s_liquid(s_score, key="s_liquid"):
     level = s_score / 100
     label = f"{s_score:.1f} 分"
     colors = ["#2ecc71", "#58d68d", "#82e0aa"]
-    make_liquid_option(level, colors, label, key, title="成本性评分 S")
+    make_liquid_option(level, colors, label, key, title="成本性评分")
 
 
 def render_irr_liquid(irr, key="irr_liquid"):
@@ -1474,14 +1474,14 @@ def render_irr_liquid(irr, key="irr_liquid"):
         key : echarts 唯一 key
     """
     if irr is None or irr < 0:
-        make_liquid_option(0.0, ["#e74c3c", "#ec7063", "#f1948a"], "不合格", key, title="盈利性评分 IRR")
+        make_liquid_option(0.0, ["#e74c3c", "#ec7063", "#f1948a"], "不合格", key, title="盈利性评分")
         return
     score = 60 + (irr - 0.065) / (0.20 - 0.065) * 40
     score = min(100, score)
     level = score / 100
     label = f"{irr*100:.1f}%"
     colors = ["#3498db", "#5dade2", "#85c1e9"]
-    make_liquid_option(level, colors, label, key, title="盈利性评分 IRR")
+    make_liquid_option(level, colors, label, key, title="盈利性评分")
 
 
 def render_hsq_liquid(jthshouqi, key="hsq_liquid"):
