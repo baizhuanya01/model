@@ -1738,7 +1738,7 @@ def calc_metrics(p):
         "ROE(%)": _zbjjlrunlv * 100,
     }
 
-tab1,tab2,tab3,tab4,tab5 = st.tabs(["主展板","参数配置","web3","web4","web5"])
+tab1,tab2,tab3,tab4,tab5 = st.tabs(["主展板","敏感性分析","web3","web4","web5"])
 
 if "saved_scenarios" not in st.session_state:
     st.session_state.saved_scenarios = {}
@@ -1853,3 +1853,57 @@ with tab2:
     with c3:
         st.caption("减免年数敏感性")
         st.plotly_chart(fig_exempt, use_container_width=True, key="sens_exempt")
+
+    st.divider()
+
+    # ── 敏感性数据表格 ────────────────────────────────────────
+    df_gap = pd.DataFrame({
+        "峰谷电价差 (元/kWh)": gap_x,
+        "成本性 S":            s1,
+        "盈利性 IRR":          irr1,
+        "回收性":              hsq1,
+    })
+    df_tax = pd.DataFrame({
+        "所得税率 (%)":  tax_x,
+        "成本性 S":      s2,
+        "盈利性 IRR":    irr2,
+        "回收性":        hsq2,
+    })
+    df_exempt = pd.DataFrame({
+        "所得税减免年数 (年)": exempt_x,
+        "成本性 S":            s3,
+        "盈利性 IRR":          irr3,
+        "回收性":              hsq3,
+    })
+
+    t1, t2, t3 = st.columns(3)
+    with t1:
+        st.caption("峰谷价差敏感性数据")
+        st.dataframe(df_gap, use_container_width=True, hide_index=True)
+        st.download_button(
+            label="下载 CSV",
+            data=df_gap.to_csv(index=False, encoding="utf-8-sig"),
+            file_name="sensitivity_gap.csv",
+            mime="text/csv",
+            key="dl_gap"
+        )
+    with t2:
+        st.caption("所得税率敏感性数据")
+        st.dataframe(df_tax, use_container_width=True, hide_index=True)
+        st.download_button(
+            label="下载 CSV",
+            data=df_tax.to_csv(index=False, encoding="utf-8-sig"),
+            file_name="sensitivity_tax.csv",
+            mime="text/csv",
+            key="dl_tax"
+        )
+    with t3:
+        st.caption("减免年数敏感性数据")
+        st.dataframe(df_exempt, use_container_width=True, hide_index=True)
+        st.download_button(
+            label="下载 CSV",
+            data=df_exempt.to_csv(index=False, encoding="utf-8-sig"),
+            file_name="sensitivity_exempt.csv",
+            mime="text/csv",
+            key="dl_exempt"
+        )
