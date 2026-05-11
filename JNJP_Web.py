@@ -1743,7 +1743,7 @@ tab1,tab2,tab3,tab4,tab5 = st.tabs(["主展板","参数配置","web3","web4","we
 if "saved_scenarios" not in st.session_state:
     st.session_state.saved_scenarios = {}
 
-
+#————————可见区————————————————
 with tab1:
     # ── 方案对比区 ────────────────────────────────────────────
     if st.session_state.saved_scenarios:
