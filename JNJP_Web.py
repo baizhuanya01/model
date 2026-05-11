@@ -1,8 +1,11 @@
 import streamlit as st
 import pandas as pd
 import plotly.graph_objects as go
+import numpy as np
 
-st.title("磷锂电池大规模应用的经济性分析")
+st.set_page_config(layout="wide")
+
+st.title("磷酸铁锂储能电站多维动态技术经济评估与智能决策支持系统")
 
 st.markdown("""
     <style>
@@ -82,13 +85,18 @@ st.markdown("""
     }
     section[data-testid="stSidebar"] > div {
         border-radius: 0 16px 16px 0 !important;
-        overflow: hidden !important;
+        overflow: auto !important;
         box-shadow: 2px 0 12px rgba(0,0,0,0.08);
     }
     /* expander 圆角 */
     [data-testid="stExpander"] {
         border-radius: 8px !important;
         overflow: hidden;
+    }
+
+    /* 防止 echarts iframe 拦截侧边栏滚轮 */
+    [data-testid="stSidebar"] iframe {
+        pointer-events: none;
     }
     </style>
     """, unsafe_allow_html=True)
@@ -107,7 +115,7 @@ canshu = {
             "type": "number_with_unit",
             "label": "额定功率",
             "var": "edgonglv",
-            "default": 5.0,
+            "default": 100.0,
             "step": 1.0,
             "units": ["MW", "kW"],          # 可选单位
             "unit_factors": {               # 换算到 MW：1 MW=1，1 kW=0.001
@@ -121,7 +129,7 @@ canshu = {
             "type": "number_with_unit",
             "label": "额定容量",
             "var": "edrongliang",
-            "default": 2.5,
+            "default": 200.0,
             "step": 1.0,
             "units": ["MWh", "kWh"],        # 可选单位
             "unit_factors": {               # 换算到 MWh：1 MWh=1，1 kWh=0.001
@@ -620,8 +628,6 @@ def render_param(param_name, config, current_val):
 # 土地费用 = 典型地价(万元/亩) × 5亩
 # 充电电价取谷/深谷典型值，放电电价取尖/峰典型值
 FA_diqv = {
-    "自定义": {},
-
     # ── 华东 ──────────────────────────────────────────────────
     "上海": {
         "fddianjia":  1.23,
@@ -828,7 +834,7 @@ if "saved_scenarios" not in st.session_state:
 
 with st.sidebar:
     with st.form("sidebar_form"):
-        selected_FA_diqv = st.selectbox("简易参数预设(详细自定义见下方)", options=list(FA_diqv.keys()))
+        selected_FA_diqv = st.selectbox("简易参数预设(详细自定义见下方)", options=list(FA_diqv.keys()),index=4)
         submitted2 = st.form_submit_button("加载预设")
 
     if submitted2:
@@ -1160,7 +1166,7 @@ irr = None
 lo, hi = 0.0, 1.0
 for _ in range(200):
     mid = (lo + hi) / 2
-    if abs(calc_npv(mid)) < 0.01:
+    if abs(hi - lo) < 1e-6:   # 区间足够小，收敛
         irr = mid; break
     elif calc_npv(mid) > 0: lo = mid
     else: hi = mid
@@ -1209,21 +1215,168 @@ lcoe_star = max(0, min(1, lcoe_star)) # 限制 in 0-1
 S_score = ((60 * capex_star + 43 * lcoe_star) / 103) * 100
 
 # ══════════════════════════════════════════════════════════════
+# 得分计算函数区（纯计算，不渲染）
+# 装饰器 clamp_score 确保所有得分在 0-100 之间
+# ══════════════════════════════════════════════════════════════
+
+def clamp_score(func):
+    """装饰器：确保得分函数返回值截断在 0-100 之间"""
+    def wrapper(*args, **kwargs):
+        result = func(*args, **kwargs)
+        return max(0.0, min(100.0, float(result)))
+    return wrapper
+
+@clamp_score
+def calc_s_score(jttouzi, lcoe):
+    """
+    成本性得分
+    输入：静态投资(万元)，LCOE(元/kWh)
+    标准化范围：投资 1.5亿~15亿，LCOE 0.1~0.7
+    权重：60:43
+    """
+    capex_min, capex_max = 15000.0, 150000.0
+    lcoe_min,  lcoe_max  = 0.1, 0.7
+    cs = max(0.0, min(1.0, (capex_max - jttouzi) / (capex_max - capex_min)))
+    ls = max(0.0, min(1.0, (lcoe_max  - lcoe)    / (lcoe_max  - lcoe_min)))
+    return ((60 * cs + 43 * ls) / 103) * 100
+
+@clamp_score
+def calc_irr_score(irr):
+    """
+    盈利性得分（IRR）
+    输入：IRR 小数形式（如 0.12 表示 12%），None 返回 0
+    规则：6.5%→60分，20%→100分，线性插值；低于0返回0
+    """
+    if irr is None or irr < 0:
+        return 0.0
+    score = 60 + (irr - 0.065) / (0.20 - 0.065) * 40
+    return score
+
+@clamp_score
+def calc_hsq_score(jthshouqi):
+    """
+    回收性得分（静态回收期）
+    输入：回收期年数，None（20年内未回收）返回 0
+    规则：10年→60分，4年→100分，线性插值；超过10年返回0
+    """
+    if jthshouqi is None:
+        return 0.0
+    score = 60 + (10 - jthshouqi) / (10 - 4) * 40
+    return score
+
+
+# ══════════════════════════════════════════════════════════════
+# 敏感性分析函数区
+# 固定其他参数，遍历目标参数范围，计算三个得分的变化
+# ══════════════════════════════════════════════════════════════
+
+def calc_sensitivity(base_params, vary_var, x_values, is_price_gap=False):
+    """
+    敏感性分析：固定其他参数，改变目标参数，返回三个得分列表
+    
+    参数：
+        base_params   : 当前参数字典（原始值）
+        vary_var      : 要变化的参数 var 名，如 "sdshuilv"
+                        is_price_gap=True 时此参数忽略
+        x_values      : 横轴数值列表
+        is_price_gap  : True 时表示变化峰谷价差
+                        逻辑：固定充电电价，放电电价 = 充电电价 + 价差
+    
+    返回：
+        (s_list, irr_list, hsq_list) 三个得分列表，与 x_values 等长
+    """
+    s_list, irr_list, hsq_list = [], [], []
+
+    for x in x_values:
+        p = base_params.copy()
+
+        if is_price_gap:
+            # 峰谷价差：放电电价 = 充电电价 + 价差
+            p["fddianjia"] = base_params["cddianjia"] + x
+        else:
+            p[vary_var] = x
+
+        m = calc_metrics(p)
+
+        # 从 calc_metrics 返回值提取得分
+        s   = calc_s_score(m["静态投资(万元)"], m["LCOE(元/kWh)"])
+        irr_val = m["IRR(%)"] / 100 if m["IRR(%)"] is not None else None
+        irr = calc_irr_score(irr_val)
+        hsq = calc_hsq_score(m["静态回收期(年)"])
+
+        s_list.append(round(s, 2))
+        irr_list.append(round(irr, 2))
+        hsq_list.append(round(hsq, 2))
+
+    return s_list, irr_list, hsq_list
+
+
+def make_sensitivity_fig(x_values, x_label, s_list, irr_list, hsq_list):
+    """
+    生成单张敏感性分析折线图
+    
+    参数：
+        x_values  : 横轴数值列表
+        x_label   : 横轴标签，如 "峰谷电价差 (元/kWh)"
+        s_list    : 成本性得分列表
+        irr_list  : 盈利性得分列表
+        hsq_list  : 回收性得分列表
+    
+    返回：plotly Figure 对象
+    """
+    fig = go.Figure()
+
+    fig.add_trace(go.Scatter(
+        x=x_values, y=s_list, name="成本性 S",
+        mode="lines+markers",
+        line=dict(color="#2ecc71", width=2), marker=dict(size=4)
+    ))
+    fig.add_trace(go.Scatter(
+        x=x_values, y=irr_list, name="盈利性 IRR",
+        mode="lines+markers",
+        line=dict(color="#3498db", width=2), marker=dict(size=4)
+    ))
+    fig.add_trace(go.Scatter(
+        x=x_values, y=hsq_list, name="回收性",
+        mode="lines+markers",
+        line=dict(color="#e67e22", width=2), marker=dict(size=4)
+    ))
+
+    # 60分合格线
+    fig.add_hline(
+        y=60, line_dash="dash", line_color="red", line_width=1,
+        annotation_text="合格线 60分", annotation_position="bottom right"
+    )
+
+    fig.update_layout(
+        xaxis_title=x_label,
+        yaxis_title="得分",
+        yaxis=dict(range=[0, 105]),
+        legend=dict(orientation="h", y=1.12, x=0),
+        margin=dict(t=30, b=40, l=40, r=10),
+        height=260,
+        plot_bgcolor="rgba(248,249,250,0.8)",
+        paper_bgcolor="rgba(0,0,0,0)"
+    )
+    return fig
+
+
+# ══════════════════════════════════════════════════════════════
 # 水波图函数区
 # 每个函数负责：① 计算水位 ② 生成 echarts option ③ 渲染图表
 # 调用方式：在 tab 里直接 render_xxx_liquid()
 # ══════════════════════════════════════════════════════════════
 
-def make_liquid_option(level, colors, label_text, key):
+def make_liquid_option(level, colors, label_text, key, title=""):
     """
     通用水波图 option 生成 + 渲染函数
     
     参数：
         level      : 水位，0.0 ~ 1.0（超出范围会被截断）
         colors     : 波浪颜色列表，如 ["#2ecc71", "#58d68d", "#82e0aa"]
-                     第一个颜色最深（最前面的波），依次变浅
-        label_text : 图中央显示的文字，如 "12.3%" 或 "7年"
+        label_text : 球内中央显示的文字，如 "12.3%" 或 "7年"
         key        : st_echarts 的唯一 key，同一页面不能重复
+        title      : 图表上方标题，为空则不显示
     """
     from streamlit_echarts import st_echarts
 
@@ -1239,11 +1392,21 @@ def make_liquid_option(level, colors, label_text, key):
     ]
 
     option = {
+        "title": {
+            "text": title,
+            "left": "center",
+            "top": "7%",
+            "textStyle": {
+                "fontSize": 15,
+                "color": "#000000",
+                "fontWeight": "bold"
+            }
+        } if title else {},
         "series": [{
             "type": "liquidFill",
             "data": wave_data,
-            "radius": "80%",           # 圆形水球半径，占容器的80%
-            "center": ["50%", "50%"],  # 居中
+            "radius": "72%",
+            "center": ["50%", "58%"],  # 球心往下偏，给标题留空间
             "color": colors,           # 波浪颜色，与 wave_data 一一对应
             "backgroundStyle": {
                 "borderWidth": 2,
@@ -1274,7 +1437,7 @@ def make_liquid_option(level, colors, label_text, key):
         }]
     }
 
-    st_echarts(option, height="120px", key=key)
+    st_echarts(option, height="140px", key=key)
 
 
 def render_s_liquid(s_score, key="s_liquid"):
@@ -1288,10 +1451,10 @@ def render_s_liquid(s_score, key="s_liquid"):
         s_score : 成本性综合评分，0~100
         key     : echarts 唯一 key
     """
-    level = s_score / 100  # S_score 本身就是 0-100，直接除以100得水位
+    level = s_score / 100
     label = f"{s_score:.1f} 分"
-    colors = ["#2ecc71", "#58d68d", "#82e0aa"]  # 绿色系
-    make_liquid_option(level, colors, label, key)
+    colors = ["#2ecc71", "#58d68d", "#82e0aa"]
+    make_liquid_option(level, colors, label, key, title="成本性评分 S")
 
 
 def render_irr_liquid(irr, key="irr_liquid"):
@@ -1310,19 +1473,15 @@ def render_irr_liquid(irr, key="irr_liquid"):
         irr : IRR 小数形式，如 0.12 表示 12%（None 表示无法计算）
         key : echarts 唯一 key
     """
-    if irr is None or irr < 0.065:
-        # 不合格：水位为0，显示红色提示
-        make_liquid_option(0.0, ["#e74c3c", "#ec7063", "#f1948a"], "不合格", key)
+    if irr is None or irr < 0:
+        make_liquid_option(0.0, ["#e74c3c", "#ec7063", "#f1948a"], "不合格", key, title="盈利性评分 IRR")
         return
-
-    # 线性插值：6.5% → 60分，20% → 100分
-    # 公式：score = 60 + (irr - 0.065) / (0.20 - 0.065) * 40
     score = 60 + (irr - 0.065) / (0.20 - 0.065) * 40
-    score = min(100, score)   # 超过20%也最多100分
+    score = min(100, score)
     level = score / 100
-    label = f"{irr * 100:.1f}%"
-    colors = ["#3498db", "#5dade2", "#85c1e9"]  # 蓝色系
-    make_liquid_option(level, colors, label, key)
+    label = f"{irr*100:.1f}%"
+    colors = ["#3498db", "#5dade2", "#85c1e9"]
+    make_liquid_option(level, colors, label, key, title="盈利性评分 IRR")
 
 
 def render_hsq_liquid(jthshouqi, key="hsq_liquid"):
@@ -1341,23 +1500,27 @@ def render_hsq_liquid(jthshouqi, key="hsq_liquid"):
         jthshouqi : 静态回收期（年），None 表示 20 年内未回收
         key       : echarts 唯一 key
     """
-    if jthshouqi is None or jthshouqi > 10:
-        # 不合格：水位为0，显示红色提示
-        make_liquid_option(0.0, ["#e74c3c", "#ec7063", "#f1948a"], "不合格", key)
+    if jthshouqi is None or jthshouqi < 0:
+        make_liquid_option(0.0, ["#e74c3c", "#ec7063", "#f1948a"], "不合格", key, title="回收性评分")
         return
-
-    # 线性插值：10年 → 60分，4年 → 100分
-    # 公式：score = 60 + (10 - hsq) / (10 - 4) * 40
     score = 60 + (10 - jthshouqi) / (10 - 4) * 40
-    score = min(100, score)   # 短于4年也最多100分
+    score = min(100, score)
     level = score / 100
     label = f"{jthshouqi} 年"
-    colors = ["#e67e22", "#f0a500", "#f7c948"]  # 橙色系
-    make_liquid_option(level, colors, label, key)
+    colors = ["#e67e22", "#f0a500", "#f7c948"]
+    make_liquid_option(level, colors, label, key, title="回收性评分")
 
 
 def calc_metrics(p):
     """根据参数字典 p 计算并返回核心财务指标字典"""
+    # ── 入口统一转换：原始值 → 计算用值 ──────────────────────
+    _p = {}
+    for group in canshu.values():
+        for config in group.values():
+            k = config["var"]
+            v = p.get(k, config["default"])
+            _p[k] = config["convert"](v) if "convert" in config else v
+    p = _p
     _edrongliang  = p["edrongliang"]
     _edgonglv     = p["edgonglv"]
     _xtxiaolv     = p["xtxiaolv"]
@@ -1544,8 +1707,10 @@ def calc_metrics(p):
     lo, hi = 0.0, 1.0
     for _ in range(200):
         mid = (lo + hi) / 2
-        if abs(_calc_npv_r(mid)) < 0.01: _irr = mid; break
-        elif _calc_npv_r(mid) > 0: lo = mid
+        npv_mid = _calc_npv_r(mid)
+        if abs(hi - lo) < 1e-6:   # 区间足够小，收敛
+            _irr = mid; break
+        elif npv_mid > 0: lo = mid
         else: hi = mid
 
     _jthshouqi = None
@@ -1610,7 +1775,7 @@ with tab1:
         st.divider()
 
     # 第一排：投资规模
-    st.subheader("投资规模及资金回收评分")
+    st.subheader("投资规模")
     z1, m1, y1, e1 = st.columns(4, vertical_alignment="center")
     z1.metric("动态投资", f"{dttouzi:.0f} 万元")
     m1.metric("静态投资", f"{jttouzi:.0f} 万元")
@@ -1665,4 +1830,26 @@ with tab1:
             st.caption("🥧 成本构成")
             st.plotly_chart(fig2, use_container_width=True, key="chenbengouchen")
 
+with tab2:
+    # 在 tab 里
+    gap_x    = list(np.linspace(0.1, 1.5, 20).round(3))
+    tax_x    = list(np.linspace(15, 25, 20).round(1))
+    exempt_x = list(range(0, 6))
 
+    s1, irr1, hsq1 = calc_sensitivity(params, None,           gap_x,    is_price_gap=True)
+    s2, irr2, hsq2 = calc_sensitivity(params, "sdshuilv",     tax_x)
+    s3, irr3, hsq3 = calc_sensitivity(params, "sdsjmnianxian", exempt_x)
+
+    fig_gap    = make_sensitivity_fig(gap_x,    "峰谷电价差 (元/kWh)", s1, irr1, hsq1)
+    fig_tax    = make_sensitivity_fig(tax_x,    "所得税率 (%)",         s2, irr2, hsq2)
+    fig_exempt = make_sensitivity_fig(exempt_x, "所得税减免年数 (年)",  s3, irr3, hsq3)
+    c1, c2, c3 = st.columns(3)
+    with c1:
+        st.caption("峰谷价差敏感性")
+        st.plotly_chart(fig_gap,    use_container_width=True, key="sens_gap")
+    with c2:
+        st.caption("所得税率敏感性")
+        st.plotly_chart(fig_tax,    use_container_width=True, key="sens_tax")
+    with c3:
+        st.caption("减免年数敏感性")
+        st.plotly_chart(fig_exempt, use_container_width=True, key="sens_exempt")
