@@ -1284,19 +1284,18 @@ def calc_hsq_score(dthshouqi):
 # 固定其他参数，遍历目标参数范围，计算三个得分的变化
 # ══════════════════════════════════════════════════════════════
 
-def calc_sensitivity(base_params, vary_var, x_values, is_price_gap=False):
+@st.cache_data
+def calc_sensitivity(base_params_tuple, vary_var, x_values, is_price_gap=False):
     """
     敏感性分析：固定其他参数，改变目标参数，返回三个得分列表
     
     参数：
-        base_params  : 当前参数字典（原始值）
-        vary_var     : 要变化的参数 var 名，如 "sdshuilv"
-        x_values     : 横轴数值列表或 tuple
-        is_price_gap : True 时表示变化峰谷价差
-    
-    返回：
-        (s_list, irr_list, hsq_list) 三个得分列表
+        base_params_tuple : tuple(sorted(params.items())) 可哈希形式
+        vary_var          : 要变化的参数 var 名
+        x_values          : 横轴数值 tuple
+        is_price_gap      : True 时表示变化峰谷价差
     """
+    base_params = dict(base_params_tuple)
     s_list, irr_list, hsq_list = [], [], []
 
     for x in x_values:
@@ -1860,12 +1859,15 @@ with tab2:
     exempt_x = list(range(0, 6))
     loan_x   = list(np.linspace(1, 10, 10).round(1))
 
-    s_fd,  irr_fd,  hsq_fd  = calc_sensitivity(params, "fddianjia",    fd_x)
-    s_cd,  irr_cd,  hsq_cd  = calc_sensitivity(params, "cddianjia",    cd_x)
-    s_pcs, irr_pcs, hsq_pcs = calc_sensitivity(params, "pcsdanjia",    pcs_x)
-    s2, irr2, hsq2 = calc_sensitivity(params, "sdshuilv",              tax_x)
-    s3, irr3, hsq3 = calc_sensitivity(params, "sdsjmnianxian",         exempt_x)
-    s4, irr4, hsq4 = calc_sensitivity(params, "dklilv",                loan_x)
+    # 转成 tuple 供缓存使用
+    _p = tuple(sorted(params.items()))
+
+    s_fd,  irr_fd,  hsq_fd  = calc_sensitivity(_p, "fddianjia",    tuple(fd_x))
+    s_cd,  irr_cd,  hsq_cd  = calc_sensitivity(_p, "cddianjia",    tuple(cd_x))
+    s_pcs, irr_pcs, hsq_pcs = calc_sensitivity(_p, "pcsdanjia",    tuple(pcs_x))
+    s2, irr2, hsq2 = calc_sensitivity(_p, "sdshuilv",              tuple(tax_x))
+    s3, irr3, hsq3 = calc_sensitivity(_p, "sdsjmnianxian",         tuple(exempt_x))
+    s4, irr4, hsq4 = calc_sensitivity(_p, "dklilv",                tuple(loan_x))
 
     fig_fd  = make_sensitivity_fig(fd_x,  "放电电价 (元/kWh)", s_fd,  irr_fd,  hsq_fd)
     fig_cd  = make_sensitivity_fig(cd_x,  "充电电价 (元/kWh)", s_cd,  irr_cd,  hsq_cd)
@@ -1962,8 +1964,8 @@ with tab2:
 
     discount_x = list(np.linspace(0, 15, 80).round(1))
     battery_x  = list(np.linspace(0.60, 0.80, 21).round(3))
-    s5, irr5, hsq5 = calc_sensitivity(params, "zxlv",       discount_x)
-    s6, irr6, hsq6 = calc_sensitivity(params, "dcxtdanjia", battery_x)
+    s5, irr5, hsq5 = calc_sensitivity(_p, "zxlv",       tuple(discount_x))
+    s6, irr6, hsq6 = calc_sensitivity(_p, "dcxtdanjia", tuple(battery_x))
     fig_discount = make_sensitivity_fig(discount_x, "折现率 (%)",           s5, irr5, hsq5)
     fig_battery  = make_sensitivity_fig(battery_x,  "电池系统单价 (元/Wh)", s6, irr6, hsq6)
 
