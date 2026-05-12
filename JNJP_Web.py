@@ -1789,7 +1789,7 @@ tab1,tab2,tab3 = st.tabs(["主展板","敏感性分析","全国热力图"])
 if "saved_scenarios" not in st.session_state:
     st.session_state.saved_scenarios = {}
 
-#————————可见区————————————————
+#————————可见区———————————————
 with tab1:
     # ── 方案对比区 ────────────────────────────────────────────
     if st.session_state.saved_scenarios:
