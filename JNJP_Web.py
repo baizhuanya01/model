@@ -1784,7 +1784,7 @@ def calc_metrics(p):
         "ROE(%)": _zbjjlrunlv * 100,
     }
 
-tab1,tab2,tab3,tab4,tab5 = st.tabs(["主展板","敏感性分析","全国热力图"])
+tab1,tab2,tab3 = st.tabs(["主展板","敏感性分析","全国热力图"])
 
 if "saved_scenarios" not in st.session_state:
     st.session_state.saved_scenarios = {}
