@@ -641,6 +641,7 @@ def render_param(param_name, config, current_val):
 #——————————————————预设方案————————————————————
 # 土地费用 = 典型地价(万元/亩) × 5亩
 # 充电电价取谷/深谷典型值，放电电价取尖/峰典型值
+#人均年工资
 FA_diqv = {
     # ── 华东 ──────────────────────────────────────────────────
     "上海": {
@@ -1320,6 +1321,33 @@ def calc_sensitivity(base_params_tuple, vary_var, x_values, is_price_gap=False):
     return s_list, irr_list, hsq_list
 
 
+@st.cache_data
+def calc_province_scores(params_tuple):
+    """
+    计算所有省份的三种评分，带缓存
+    参数不变时直接返回缓存结果，避免每次刷新重复跑30次 calc_metrics
+    
+    参数：
+        params_tuple : tuple(sorted(params.items())) 可哈希形式
+    返回：
+        {省份简称: (成本性S, 盈利性IRR, 回收性)} 字典
+    """
+    base = dict(params_tuple)
+    scores = {}
+    for province, preset in FA_diqv.items():
+        if not preset:   # 跳过"自定义"
+            continue
+        p = base.copy()
+        p.update(preset)
+        m = calc_metrics(p)
+        s     = calc_s_score(m["静态投资(万元)"], m["LCOE(元/kWh)"])
+        irr_v = m["IRR(%)"] / 100 if m["IRR(%)"] is not None else None
+        irr_s = calc_irr_score(irr_v)
+        hsq_s = calc_hsq_score(m["动态回收期(年)"])
+        scores[province] = (round(s, 1), round(irr_s, 1), round(hsq_s, 1))
+    return scores
+
+
 def make_sensitivity_fig(x_values, x_label, s_list, irr_list, hsq_list):
     """
     生成单张敏感性分析折线图
@@ -1381,8 +1409,8 @@ def make_liquid_option(level, colors, label_text, key, title=""):
     通用水波图 option 生成 + 渲染函数
     
     参数：
-        level      : 水位，0.0 ~ 1.0（超出范围会被截断）
-        colors     : 波浪颜色列表，如 ["#2ecc71", "#58d68d", "#82e0aa"]
+        level      : 水位，0.0 ~ 1.0（超出范围被截断）
+        colors     : 波浪颜色列表
         label_text : 球内中央显示的文字，如 "12.3%" 或 "7年"
         key        : st_echarts 的唯一 key，同一页面不能重复
         title      : 图表上方标题，为空则不显示
@@ -1415,12 +1443,12 @@ def make_liquid_option(level, colors, label_text, key, title=""):
             "type": "liquidFill",
             "data": wave_data,
             "radius": "72%",
-            "center": ["50%", "58%"],  # 球心往下偏，给标题留空间
-            "color": colors,           # 波浪颜色，与 wave_data 一一对应
+            "center": ["50%", "58%"],  # 球心往下偏
+            "color": colors,           # 波浪颜色
             "backgroundStyle": {
                 "borderWidth": 2,
-                "borderColor": colors[0],   # 外圈边框颜色与主波浪一致
-                "color": "#f4f6f7"          # 球内背景色（未被水覆盖的部分）
+                "borderColor": colors[0],   
+                "color": "#f4f6f7"          
             },
             "outline": {
                 "show": True,
@@ -1756,7 +1784,7 @@ def calc_metrics(p):
         "ROE(%)": _zbjjlrunlv * 100,
     }
 
-tab1,tab2,tab3,tab4,tab5 = st.tabs(["主展板","敏感性分析","全国热力图","！大的要来了 ！","web5"])
+tab1,tab2,tab3,tab4,tab5 = st.tabs(["主展板","敏感性分析","全国热力图"])
 
 if "saved_scenarios" not in st.session_state:
     st.session_state.saved_scenarios = {}
@@ -1841,11 +1869,11 @@ with tab1:
     L1, R1 = st.columns(2, gap="large")
     with L1:
         with st.container(border=True):
-            st.caption("📈 累计现金流")
+            st.caption("累计现金流")
             st.plotly_chart(fig1, use_container_width=True, key="ljxjinliu")
     with R1:
         with st.container(border=True):
-            st.caption("🥧 成本构成")
+            st.caption("成本构成")
             st.plotly_chart(fig2, use_container_width=True, key="chenbengouchen")
 
 with tab2:
@@ -2008,24 +2036,8 @@ with tab2:
 
 
 with tab3:
-    # ── 计算每个省份的三种得分 ────────────────────────────────
-    # 遍历 FA_diqv，用每个省份的预设参数替换当前参数，跑一次 calc_metrics
-    province_scores = {}   # {省份名: (s, irr_score, hsq_score)}
-
-    for province, preset in FA_diqv.items():
-        if not preset:   # 跳过"自定义"（空字典）
-            continue
-        # 用省份预设覆盖当前参数
-        p = params.copy()
-        p.update(preset)
-        m = calc_metrics(p)
-
-        s     = calc_s_score(m["静态投资(万元)"], m["LCOE(元/kWh)"])
-        irr_v = m["IRR(%)"] / 100 if m["IRR(%)"] is not None else None
-        irr_s = calc_irr_score(irr_v)
-        hsq_s = calc_hsq_score(m["动态回收期(年)"])
-
-        province_scores[province] = (round(s, 1), round(irr_s, 1), round(hsq_s, 1))
+    # ── 计算每个省份的三种得分（带缓存）────────────────────────
+    province_scores = calc_province_scores(tuple(sorted(params.items())))
 
     # pyecharts 省份名映射（需要全称才能匹配地图）
     province_name_map = {
@@ -2045,10 +2057,10 @@ with tab3:
     hsq_data = [[province_name_map.get(p, p), v[2]] for p, v in province_scores.items()]
 
     # 港澳台无数据，传 -1 让 pyecharts 用特殊颜色显示（灰色）
-    for name in ["香港特别行政区", "澳门特别行政区", "台湾省","西藏自治区"]:
-        s_data.append([name, -1])
-        irr_data.append([name, -1])
-        hsq_data.append([name, -1])
+    # for name in ["香港特别行政区", "澳门特别行政区", "台湾省","西藏自治区"]:
+    #     s_data.append([name, -1])
+    #     irr_data.append([name, -1])
+    #     hsq_data.append([name, -1])
 
     def make_china_map(data, title, color_range=(0, 100)):
         """
@@ -2106,17 +2118,17 @@ with tab3:
     m1, m2, m3 = st.columns(3)
 
     with m1:
-        st.caption("💰 成本性评分 S")
-        html_s = make_china_map(s_data, "成本性评分 S")
+        st.caption("成本性评分")
+        html_s = make_china_map(s_data, "成本性评分")
         components.html(html_s, height=440, scrolling=False)
 
     with m2:
-        st.caption("📈 盈利性评分 IRR")
-        html_irr = make_china_map(irr_data, "盈利性评分 IRR")
+        st.caption("盈利性评分")
+        html_irr = make_china_map(irr_data, "盈利性评分")
         components.html(html_irr, height=440, scrolling=False)
 
     with m3:
-        st.caption("⏱ 回收性评分")
+        st.caption("回收性评分")
         html_hsq = make_china_map(hsq_data, "回收性评分")
         components.html(html_hsq, height=440, scrolling=False)
 
