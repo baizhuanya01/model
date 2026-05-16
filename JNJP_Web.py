@@ -7,7 +7,13 @@ from pyecharts import options as opts
 from pyecharts.charts import Map
 from pyecharts.globals import ThemeType
 
-st.set_page_config(layout="wide")
+st.set_page_config(
+# 改名字
+    page_title="青藤慧储",
+# 改图标（支持 Emoji 或图片链接） 
+    page_icon="🔋",                           
+    layout="wide"                           
+)
 
 st.title("磷酸铁锂储能电站多维动态技术经济评估与智能决策支持系统")
 
